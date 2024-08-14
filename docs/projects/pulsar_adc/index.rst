@@ -152,21 +152,17 @@ PulSAR_ADC_FMC
 Configuration modes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For AD40xx/ADAQ40xx projects the AD40XX_ADAQ400X_N parameter defines the type
-of ADC (AD40xx or ADAQ40xx). By default is set to 1. Depending on the project,
-some hardware modifications need to be done on the board and/or make command:
+The Zedboard based Pulsar ADC project can be built to use either the FMC 
+connector or the Pmod JA connector. The FMC_N_PMOD parameter is used to select
+between the two options; 0 for PMOD and 1 for FMC. By default it is set to 1
+(FMC).
 
-In case of the **ADAQ40xx** project:
-
-.. code-block::
-
-   make AD40XX_ADAQ400X_N=0
-
-In case of the **AD40xx** project:
-
-.. code-block::
-
-   make AD40XX_ADAQ400X_N=1
+The Pulsar project supports different configurations required for certain
+ADCs, like the AD7944. These modes are selected using the SPI_OP_MODE parameter,
+0 for normal SPI Engine connections, 1 for 3-wire "single" mode where CS drives
+the SDO line while the CS line is drive by GPIO and 2 where SDO is driven by
+GPIO and the CS line is driven by CS. The SPI_OP_MODE parameter must only be
+used for the FMC variant.
 
 CPU/Memory interconnects addresses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -234,8 +230,8 @@ The Software GPIO number is calculated as follows:
 -  Zynq-7000: if PS7 is used, then offset is 54
 
 .. list-table::
-   :widths: 25 25 25 25
-   :header-rows: 2
+   :widths: 40 25 25 25
+   :header-rows: 3
 
    * - GPIO signal
      - Direction
@@ -245,20 +241,24 @@ The Software GPIO number is calculated as follows:
      - (from FPGA view)
      -
      - Zynq-7000
-   * - pulsar_adc_spi_pd *
-     - OUT
-     - 32
-     - 86
-   * - ad40xx_amp_pd **
+   * - pulsar_gpio[0] (PD)*
      - INOUT
      - 32
      - 86
+   * - pulsar_gpio[1] (TURBO)**
+     - INOUT
+     - 33
+     - 87
+   * - pulsar_gpio[2] (SDO - SPI_OP_MODE=2)**
+     - INOUT
+     - 34
+     - 88
 
 .. admonition:: Legend
    :class: note
 
    -   ``*`` instantiated only for PulSAR_ADC_PMDZ projects
-   -   ``**`` instantiated only for AD40XX_ADAQ400X_N=1 (AD40xx)
+   -   ``**`` instantiated only for FMC_N_PMOD=1 (AD40xx)
 
 Interrupts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -289,18 +289,44 @@ the HDL repository, and then build the project as follows:.
    :linenos:
 
    user@analog:~$ cd hdl/projects/pulsar_adc/zed
-   user@analog:~/hdl/projects/pulsar_adc/zed$ make AD40XX_ADAQ400X_N=1
+   user@analog:~/hdl/projects/pulsar_adc/zed$ make FMC_N_PMOD=1 SPI_OP_MODE=0
 
 The result of the build, if parameters were used, will be in a folder named
 by the configuration used:
 
+Build examples:
+
+Zedboard Pmod support
+
+.. code-block::
+
+   make FMC_N_PMOD=0
+
+Zedboard standard configuration FMC support (default)
+
+.. code-block::
+
+   make FMC_N_PMOD=1 SPI_OP_MODE=0 - builds standard FMC version
+
+Zedboard FMC support for AD7944 4-wire mode ("multi")
+
+.. code-block::
+
+   make FMC_N_PMOD=1 SPI_OP_MODE=1
+
+Zedboard FMC support for AD7944 chain mode or 3-wire "single"
+
+.. code-block::
+
+   make FMC_N_PMOD=1 SPI_OP_MODE=2
+
 if the following command was run
 
-``make AD40XX_ADAQ400X_N=0``
+``make FMC_N_PMOD=1 SPI_OP_MODE=0 ``
 
 then the folder name will be:
 
-``AD40XX_ADAQ400X_N0``
+``FMC_N_PMOD1_SPI_OP_MODE0``
 
 For projects that have coraz7s as a carrier, the build is done without parameters.
 
