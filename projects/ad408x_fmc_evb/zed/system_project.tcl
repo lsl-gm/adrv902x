@@ -15,4 +15,3 @@ adi_project_files ad408x_fmc_evb_zed [list \
   "system_top.v" ]
 
 adi_project_run ad408x_fmc_evb_zed
-

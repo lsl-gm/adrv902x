@@ -58,7 +58,6 @@
 //  idata : [B3,B2,B1,B0],[B7,B6,B5,B4],[B11,B10,B9,B8]
 //  odata:                             [B5,B4,B3,B2,B1,B0],[B11,B10,B9,B8,B7,B6]
 //
-//
 //  or
 //
 //  Data aligned to MSB

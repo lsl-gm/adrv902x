@@ -42,7 +42,6 @@ Files
 Block Diagram
 --------------------------------------------------------------------------------
 
-
 .. image:: block_diagram.svg
    :alt: AXI AD408x block diagram
 
@@ -100,18 +99,28 @@ Internal Interface Description
 
 The axi_ad408x operates as follows:
 
-* The LVDS data is deserialized by the ad_serdes_in module with a 1:8 ratio.
-* After deserialization, the data is sent to the ad_pack module, which packs the 8-bit data into a 20-bit format.
-* When the bit-slip (synchronization process) is enabled, the software configures the ADC to output a fixed pattern, and the interface module will adjust the data alignment until the pattern is captured.
-* When the filter is enabled, the adc_valid signal is gated by the filter_data_ready_n signal, and the data is sent to the output only when the filtered data is available.
+* The LVDS data is deserialized by the
+  :git-hdl:`ad_serdes_in<library/xilinx/common/ad_serdes_in.v>` module with
+  a 1:8 ratio.
+* After deserialization, the data is sent to the
+  :git-hdl:`ad_pack<library/common/ad_pack.v>` module, which packs the 8-bit
+  data into a 20-bit format.
+* When the bit-slip (synchronization process) is enabled, the software
+  configures the ADC to output a fixed pattern, and the interface module will
+  adjust the data alignment until the pattern is captured.
+* When the filter is enabled, the adc_valid signal is gated by the
+  filter_data_ready_n signal, and the data is sent to the output only when the
+  filtered data is available.
 
 Register Map
 --------------------------------------------------------------------------------
 
 The register map of the core contains instances of several generic register maps
-like ADC common, ADC channel, :git-hdl:`up_delay_cntrl <library/common/up_delay_cntrl.v>`.
+like ADC common, ADC channel,
+:git-hdl:`up_delay_cntrl <library/common/up_delay_cntrl.v>`.
 The following table presents the base addresses of each instance, after it you
 can find the detailed description of each generic register map.
+
 The absolute address of a register should be calculated by adding the instance
 base address to the registers relative address.
 
@@ -162,12 +171,12 @@ The control of the AD408x chip is done through a SPI interface, which is needed
 at system level.
 
 The *ADC interface signals* must be connected directly to the top file of the
-design, as IO primitives are part of the IP.
+design, as I/O primitives are part of the IP.
 
 The example design uses a DMA to move the data from the output of the IP to
 memory.
 
-If the data needs to be processed in HDL before moved to the memory, it can be
+If the data needs to be processed in HDL before moving it to the memory, it can be
 done at the output of the IP (at system level) or inside of the ADC channel
 module (at IP level).
 
@@ -177,8 +186,6 @@ the interface module.
 
 Software Guidelines
 --------------------------------------------------------------------------------
-The software for this IP can be found as part of the AD408x Native FMC Card
-Linux drivers can be found in :git-linux:`/`.
 
 .. list-table:: Main registers used to control the AXI AD408x IP
    :header-rows: 1
@@ -208,10 +215,16 @@ Linux drivers can be found in :git-linux:`/`.
      - 0
      - States the synchronization status.
 
+Software Suppport
+--------------------------------------------------------------------------------
+* Linux support at :git-linux:`/`
+
 References
 -------------------------------------------------------------------------------
 
-* :git-hdl:`library/axi_ad408x`
+* HDL IP core at :git-hdl:`library/axi_ad408x`
+* HDL project at :git-hdl:`projects/ad408x_fmc_evb`
+* HDL project documentation at :ref:`ad408x_fmc_evb`
 * :adi:`AD4080`
 * :xilinx:`Zynq-7000 SoC Overview <support/documentation/data_sheets/ds190-Zynq-7000-Overview.pdf>`
 * :xilinx:`Zynq-7000 SoC Packaging and Pinout <support/documentation/user_guides/ug865-Zynq-7000-Pkg-Pinout.pdf>`
