@@ -28,8 +28,15 @@ Supported boards
 Supported devices
 -------------------------------------------------------------------------------
 
--  :adi:`ADAQ23876`
--  :adi:`LTC2387-18`
+-  :adi:`LTC2387-16` 15MSPS
+-  :adi:`LTC2387-18` 15MSPS
+-  :adi:`LTC2386-16` 10MSPS
+-  :adi:`LTC2386-18` 10MSPS
+-  :adi:`LTC2385-16` 5MSPS
+-  :adi:`LTC2385-18` 5MSPS
+-  :adi:`ADAQ23878` 18-bit 15MSPS
+-  :adi:`ADAQ23876` 16-bit 15MSPS
+-  :adi:`ADAQ23875` 16-bit 15MSPS
 
 Supported carriers
 -------------------------------------------------------------------------------
@@ -72,7 +79,7 @@ one-bit-adc-dac, in software.
 
     - Shorting pins 1 and 2 → PD_N = 1, device is not powered down
     - Shorting pins 2 and 3 → PD_N = 0, device is powered down
-  
+
   - P2 - configures TESTPAT
 
     - Shorting pins 1 and 2 → TESTPAT = 1, pattern testing is active
@@ -93,6 +100,10 @@ Clock scheme
    It is further named as reference clock. This clock is gated and fed back to
    the device as the sampling clock, on which the data was sampled
 -  The DMA runs on the ZynqPS clock FCLK_CLK0 which has a frequency of 100MHz
+-  The LVDS input clock `ref_clk` is used to clock the
+   :git-hdl:`library/axi_pwm_gen` (on `ext_clk` port),
+   the :git-hdl:`library/axi_ltc2387` and the FIFO writes from
+   the :git-hdl:`DMA <library/axi_dmac>`
 
 CPU/Memory interconnects addresses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
