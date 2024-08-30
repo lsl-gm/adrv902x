@@ -95,7 +95,7 @@ Design Guidelines
 The control of the chip is done through an SPI interface, which is needed at the
 system level.
 The :ref:`template_ip interface` must be connected directly to the top file of
-the design, as IO primitives are part of the  IP.
+the design, as I/O primitives are part of the IP.
 
 The example design uses a DMA to move the data from the output of the IP to memory.
 If the data needs to be processed in HDL before moving to the memory, it can be
