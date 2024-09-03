@@ -18,7 +18,7 @@ set_property -dict {PACKAGE_PIN C19 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports c
 set_property -dict {PACKAGE_PIN L22 IOSTANDARD LVCMOS25} [get_ports gpio1_fmc];           ## C11 FMC_LA06_N IO_L10N_T1_34
 set_property -dict {PACKAGE_PIN R20 IOSTANDARD LVCMOS25} [get_ports gpio2_fmc];           ## D14 FMC_LA09_P IO_L17P_T2_34
 set_property -dict {PACKAGE_PIN R21 IOSTANDARD LVCMOS25} [get_ports gpio3_fmc];           ## D15 FMC_LA09_N IO_L17N_T2_34
- 
+
 set_property -dict {PACKAGE_PIN N17 IOSTANDARD LVCMOS25} [get_ports gp0_dir];             ## H16 FMC_LA11_P IO_L5P_T0_34
 set_property -dict {PACKAGE_PIN T19 IOSTANDARD LVCMOS25} [get_ports gp1_dir];             ## C15 FMC_LA10_N IO_L22N_T3_34
 set_property -dict {PACKAGE_PIN P20 IOSTANDARD LVCMOS25} [get_ports gp2_dir];             ## G15 FMC_LA12_P IO_L18P_T2_34
@@ -45,11 +45,9 @@ set_property -dict {PACKAGE_PIN B19 IOSTANDARD LVCMOS25} [get_ports doa_fmc];   
 set_property -dict {PACKAGE_PIN B20 IOSTANDARD LVCMOS25} [get_ports dob_fmc];             ## H29 FMC_LA24_N IO_L10N_T1_AD11N_35
 set_property -dict {PACKAGE_PIN J20 IOSTANDARD LVCMOS25} [get_ports doc_fmc];             ## G18 FMC_LA16_P IO_L9P_T1_DQS_34
 set_property -dict {PACKAGE_PIN K21 IOSTANDARD LVCMOS25} [get_ports dod_fmc];             ## G19 FMC_LA16_N IO_L9N_T1_DQS_34
-    
+
 set_property -dict {PACKAGE_PIN L21 IOSTANDARD LVCMOS25} [get_ports ad9508_sync];         ## C10 FMC_LA06_P IO_L10P_T1_34
 set_property -dict {PACKAGE_PIN C20 IOSTANDARD LVCMOS25} [get_ports adf435x_lock];        ## C23 FMC_LA18_CC_N IO_L14N_T2_AD4N_SRCC_35
-
-set_property IDELAY_VALUE 1 [get_cells -hier -filter {name =~ *da_iddr/i_rx_data_idelay*}]
 
 # clocks
 
