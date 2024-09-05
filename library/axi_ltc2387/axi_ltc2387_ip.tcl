@@ -39,28 +39,57 @@ set cc [ipx::current_core]
 
 set page0 [ipgui::get_pagespec -name "Page 0" -component $cc]
 
+ipx::add_user_parameter ADC_RES $cc
+set_property value_resolve_type user [ipx::get_user_parameters ADC_RES -of_objects $cc]
 ipgui::add_param -name "ADC_RES" -component $cc -parent $page0
 set_property -dict [list \
   "display_name" "ADC resolution" \
-  "tooltip" "ADC resolution" \
+  "tooltip" "ADC_RES" \
+  "widget" "radioGroup" \
+  "layout" "horizontal" \
 ] [ipgui::get_guiparamspec -name "ADC_RES" -component $cc]
 
 set_property -dict [list \
-	"value_validation_type" "list" \
-	"value_validation_list" "16 18" \
- ] \
-[ipx::get_user_parameters ADC_RES -of_objects $cc]
+  "value" "16" \
+  "value_format" "long" \
+  "value_validation_type" "list" \
+  "value_validation_list" "16 18" \
+] [ipx::get_user_parameters ADC_RES -of_objects $cc]
 
+ipx::add_user_parameter OUT_RES $cc
+set_property value_resolve_type user [ipx::get_user_parameters OUT_RES -of_objects $cc]
 ipgui::add_param -name "OUT_RES" -component $cc -parent $page0
 set_property -dict [list \
   "display_name" "Output data width" \
-  "tooltip" "Memory interface" \
+  "tooltip" "OUT_RES" \
+  "widget" "radioGroup" \
+  "layout" "horizontal" \
 ] [ipgui::get_guiparamspec -name "OUT_RES" -component $cc]
 
 set_property -dict [list \
-	"value_validation_type" "list" \
-	"value_validation_list" "16 32" \
- ] \
-[ipx::get_user_parameters OUT_RES -of_objects $cc]
+  "value" "16" \
+  "value_format" "long" \
+  "value_validation_type" "list" \
+  "value_validation_list" "16 32" \
+] [ipx::get_user_parameters OUT_RES -of_objects $cc]
 
-ipx::save_core [ipx::current_core]
+ipx::add_user_parameter TWOLANES $cc
+set_property value_resolve_type user [ipx::get_user_parameters TWOLANES -of_objects $cc]
+ipgui::add_param -name "TWOLANES" -component $cc -parent $page0
+set_property -dict [list \
+  "display_name" "Lane mode" \
+  "tooltip" "TWOLANES" \
+  "widget" "radioGroup" \
+  "layout" "horizontal" \
+] [ipgui::get_guiparamspec -name "TWOLANES" -component $cc]
+
+set_property -dict [list \
+  "value" "1" \
+  "value_format" "long" \
+  "value_validation_type" "list" \
+  "value_validation_list" "0 1" \
+] [ipx::get_user_parameters TWOLANES -of_objects $cc]
+
+ipx::create_xgui_files $cc
+ipx::update_checksums $cc
+ipx::save_core $cc
