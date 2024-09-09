@@ -15,7 +15,7 @@ source ../../scripts/adi_ip_intel.tcl
 
 ad_ip_create jesd204_phy_glue {Native PHY to JESD204 glue logic} \
  jesd204_phy_glue_elab
-set_module_property INTERNAL true
+#set_module_property INTERNAL true
 
 # files
 
@@ -196,14 +196,14 @@ proc jesd204_phy_glue_elab {} {
   set sig_offset 0
   set const_offset 0
 
-  if {[string equal $device "Arria 10"]} {
+  if {[string equal $device "Arria 10"] || [string equal $device "Cyclone 10 GX"]} {
     set reconfig_avmm_address_width 10
     set unused_width_per_lane 88
   } elseif {[string equal $device "Stratix 10"]} {
     set reconfig_avmm_address_width 11
     set unused_width_per_lane 40
   } else {
-    send_message error "Only Arria 10 and Stratix 10 are supported."
+    send_message error "Only Arria 10/Cyclone 10 GX and Stratix 10 are supported in jesd204_phy_glue_hw.tcl: 206."
   }
 
   glue_add_if $num_of_lanes reconfig_clk clock sink true
