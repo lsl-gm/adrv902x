@@ -17,7 +17,7 @@ module jesd204_rx #(
   parameter DATA_PATH_WIDTH = LINK_MODE == 2 ? 8 : 4,
   parameter ENABLE_FRAME_ALIGN_CHECK = 1,
   parameter ENABLE_FRAME_ALIGN_ERR_RESET = 0,
-  parameter ENABLE_CHAR_REPLACE = 0,
+  parameter ENABLE_CHAR_REPLACE = 1,
   parameter ASYNC_CLK = 1,
   parameter TPL_DATA_PATH_WIDTH = LINK_MODE == 2 ? 8 : 4
 ) (
