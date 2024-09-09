@@ -74,7 +74,7 @@ proc jesd204_phy_composition_callback {} {
     }
   }
 
-  if {[string equal $device "Arria 10"]} {
+  if {[string equal $device "Arria 10"] || [string equal $device "Cyclone 10 GX"]} {
     set device_type 1
   } elseif {[string equal $device "Stratix 10"]} {
     set device_type 2
@@ -91,13 +91,13 @@ proc jesd204_phy_composition_callback {} {
   add_interface link_reset reset sink
   set_interface_property link_reset EXPORT_OF link_clock.clk_in_reset
 
-  ## Arria10
+  ## Arria10 || Cyclone 10 GX
   if {$device_type == 1} {
     add_instance native_phy altera_xcvr_native_a10
     set_instance_parameter_value native_phy {enh_txfifo_mode} "Phase compensation"
     set_instance_parameter_value native_phy {enh_rxfifo_mode} "Phase compensation"
-    set_instance_property native_phy SUPPRESS_ALL_WARNINGS true
-    set_instance_property native_phy SUPPRESS_ALL_INFO_MESSAGES true
+#    set_instance_property native_phy SUPPRESS_ALL_WARNINGS true
+#    set_instance_property native_phy SUPPRESS_ALL_INFO_MESSAGES true
   ## Stratix 10
   } elseif {$device_type == 2} {
     add_instance native_phy altera_xcvr_native_s10_htile
@@ -116,7 +116,7 @@ proc jesd204_phy_composition_callback {} {
 
   ## Unsupported device
   } else {
-    send_message error "Only Arria 10/Stratix 10/Agilex 7 are supported."
+    send_message error "Only Arria 10/Stratix 10/Agilex 7/Cyclone 10 GX are supported."
   }
 
   # Common paramters to all PHYs

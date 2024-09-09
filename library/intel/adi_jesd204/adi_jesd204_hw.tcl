@@ -116,11 +116,11 @@ proc create_phy_reset_control {tx num_of_lanes sysclk_frequency} {
 
   set device [get_parameter_value DEVICE_FAMILY]
 
-  if {[string equal $device "Arria 10"]} {
+  if {[string equal $device "Arria 10"] || [string equal $device "Cyclone 10 GX"]} {
 
     add_instance phy_reset_control altera_xcvr_reset_control
-    set_instance_property phy_reset_control SUPPRESS_ALL_WARNINGS true
-    set_instance_parameter_value phy_reset_control {SYNCHRONIZE_RESET} {0}
+#MJW    set_instance_property phy_reset_control SUPPRESS_ALL_WARNINGS true
+#MJW    set_instance_parameter_value phy_reset_control {SYNCHRONIZE_RESET} {0}
     set_instance_parameter_value phy_reset_control {CHANNELS} $num_of_lanes
     set_instance_parameter_value phy_reset_control {SYS_CLK_IN_MHZ} $sysclk_frequency
     set_instance_parameter_value phy_reset_control {TX_PLL_ENABLE} $tx
@@ -176,7 +176,7 @@ proc create_phy_reset_control {tx num_of_lanes sysclk_frequency} {
     }
 
   } else {
-    send_message error "Only Arria 10 and Stratix 10 are supported."
+    send_message error "Only Arria 10/Cyclone 10 GX and Stratix 10 are supported in adi_jesd204_hw.tcl:167."
   }
 }
 
@@ -184,7 +184,7 @@ proc create_lane_pll {id tx_or_rx_n pllclk_frequency refclk_frequency num_lanes 
 
   set device_family [get_parameter_value "DEVICE_FAMILY"]
 
-  if {$device_family == "Arria 10"} {
+  if {$device_family == "Arria 10" || $device_family == "Cyclone 10 GX"} {
     add_instance lane_pll altera_xcvr_atx_pll_a10
     if {$num_lanes > 6} {
       set_instance_parameter_value lane_pll enable_mcgb {true}
@@ -228,7 +228,7 @@ proc create_lane_pll {id tx_or_rx_n pllclk_frequency refclk_frequency num_lanes 
     }
 
   } else {
-    send_message error "Only Arria 10 and Stratix 10 are supported."
+    send_message error "Only Arria 10/Cyclone 10 GX and Stratix 10 are supported in adi_jesd204_hw.tcl:219."
   }
 
   set_instance_parameter_value lane_pll {rcfg_separate_avmm_busy} {1}
@@ -289,9 +289,9 @@ proc jesd204_validate {{quiet false}} {
   set tx_or_rx_n [get_parameter_value "TX_OR_RX_N"]
   set link_mode [get_parameter_value "LINK_MODE"]
 
-  if {$device_family != "Arria 10" && $device_family != "Stratix 10" && $device_family != "Agilex 7"} {
+  if {$device_family != "Arria 10" && $device_family != "Stratix 10" && $device_family != "Agilex 7" && $device_family != "Cyclone 10 GX"} {
     if {!$quiet} {
-      send_message error "Only Arria 10/Startix 10/Agilex 7 are supported."
+      send_message error "Only Arria 10/Startix 10/Agilex 7/Cyclone 10 GX are supported."
     }
     return false
   }
@@ -417,7 +417,7 @@ proc jesd204_compose {} {
     }
   }
 
-  if {$device_family == "Arria 10"} {
+  if {$device_family == "Arria 10" || $device_family == "Cyclone 10 GX"} {
 
     add_instance link_pll altera_xcvr_fpll_a10
     set_instance_parameter_value link_pll {gui_fpll_mode} {0}
@@ -474,7 +474,7 @@ proc jesd204_compose {} {
 
   } else {
     ## Unsupported device
-    send_message error "Only Arria 10/Stratix 10/Agilex 7 are supported."
+    send_message error "Only Arria 10/Stratix 10/Agilex 7/Cyclone 10 GX are supported."
   }
 
   add_interface link_clk clock source

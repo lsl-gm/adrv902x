@@ -10,6 +10,8 @@ source $ad_hdl_dir/library/scripts/adi_ip_intel.tcl
 
 ad_ip_create intel_mem_asym {Intel Asymmetric Memory}
 set_module_property COMPOSITION_CALLBACK p_intel_mem_asym
+# Tried change to ELABORATION - but cannot add_instance during ELABORATION 
+#set_module_property ELABORATION_CALLBACK p_intel_mem_asym
 
 # parameters
 
@@ -53,12 +55,17 @@ proc p_intel_mem_asym {} {
   add_interface mem_i_rdaddress conduit end
   add_interface mem_o_dataout   conduit end
 
+   send_message INFO "WOULD EXPORT intel_mem INTERFACE HERE"
+#  set_interface_property mem_i_wrclock   EXPORT_OF ""
+#  set_interface_property mem_i_wrclock   EXPORT_OF intel_mem.ram_input.wrclock
   set_interface_property mem_i_wrclock   EXPORT_OF intel_mem.wrclock
   set_interface_property mem_i_wren      EXPORT_OF intel_mem.wren
   set_interface_property mem_i_wraddress EXPORT_OF intel_mem.wraddress
+#  set_interface_property mem_i_wraddress EXPORT_OF ""
   set_interface_property mem_i_datain    EXPORT_OF intel_mem.data
   set_interface_property mem_i_rdclock   EXPORT_OF intel_mem.rdclock
   set_interface_property mem_i_rdaddress EXPORT_OF intel_mem.rdaddress
+#  set_interface_property mem_i_rdaddress EXPORT_OF ""
   set_interface_property mem_o_dataout   EXPORT_OF intel_mem.q
 }
 

@@ -44,10 +44,12 @@ set fpga_technology_list { \
         { "Stratix 10" 104 } \
         { "Agilex 7"   105 }}
 
+# MJW added CX equiv to GX for Cyclone 10 GX
 set fpga_family_list { \
         { Unknown   0 } \
         { SX        1 } \
         { GX        2 } \
+        { CX        2 } \
         { GT        3 } \
         { GZ        4 } \
         { "SE Base" 5 } \
@@ -134,6 +136,12 @@ proc get_part_param {} {
       set fpga_voltage "0"
     }
 
+	# Quartus Pro 18.1 for Cyclone 10, doesnt return family
+    if { $fpga_family == "" } {
+		set fpga_family "GX"
+    }
+
+	send_message INFO "fpga_technology=($fpga_technology), fpga_family=($fpga_family), xcvr_type = ($xcvr_type) "
     # user and system values (sys_val)
     if { $fpga_technology == "{{Agilex 7}}" } {
       # TODO : Transform VID2 to some voltage
