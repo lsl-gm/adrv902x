@@ -286,6 +286,8 @@ proc info_param_validate {} {
       set pointer_to_sys_val [subst $$ls_param]   ;# e.g., $fpga_technology
       set enc_list_pointer [subst $$list_pointer] ;# e.g., $fpga_technology_list
 
+	  send_message INFO "LOOP-> pointer_to_sys_val = ($pointer_to_sys_val) enc_list_pointer = ($enc_list_pointer)"
+
       # get_part_info returns '{'#value'}'
       regsub -all "{" $pointer_to_sys_val "" pointer_to_sys_val
       regsub -all "}" $pointer_to_sys_val "" pointer_to_sys_val
@@ -306,12 +308,14 @@ proc info_param_validate {} {
       if { $get_list_correspondence } {
         set matched ""
         foreach i $enc_list_pointer {
+          send_message INFO " foreach i = $i regexp in ($pointer_to_sys_val) ($enc_list_pointer)"
           if { [regexp ^[lindex $i 0] $pointer_to_sys_val] } {
             set matched [lindex $i 1]
+            send_message INFO "    MATCHED $matched"
           }
         }
         if { $matched == "" } {
-          send_message ERROR "Unknown or undefined(adi_intel_device_info_enc.tcl) $param \"$pointer_to_sys_val\" form \"$device\" device"
+          send_message ERROR "Unknown or undefined(adi_intel_device_info_enc.tcl) $param \"$pointer_to_sys_val\" form FROM \"$device\" device"
         } else {
           set_parameter_value $param $matched
         }

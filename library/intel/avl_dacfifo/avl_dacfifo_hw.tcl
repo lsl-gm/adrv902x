@@ -7,6 +7,8 @@ package require qsys 14.0
 source ../../../scripts/adi_env.tcl
 source ../../scripts/adi_ip_intel.tcl
 
+# To define as composition callback use
+# ad_ip_create avl_dacfifo {Avalon DDR DAC Fifo} {} p_avl_dacfifo_elab
 ad_ip_create avl_dacfifo {Avalon DDR DAC Fifo} p_avl_dacfifo_elab
 ad_ip_files avl_dacfifo [list\
   $ad_hdl_dir/library/common/util_delay.v \
@@ -114,7 +116,8 @@ proc p_avl_dacfifo_elab {} {
   }
 
   # intel memory for WRITE side
-
+  send_message INFO "add_hdl_instance intel_mem_asym: ad_mem_asym_wr"
+   
   add_hdl_instance ad_mem_asym_wr intel_mem_asym 1.0
   set_instance_parameter_value ad_mem_asym_wr DEVICE_FAMILY $m_device_family
   set_instance_parameter_value ad_mem_asym_wr A_ADDRESS_WIDTH $m_dma_mem_addr_width
@@ -122,6 +125,7 @@ proc p_avl_dacfifo_elab {} {
   set_instance_parameter_value ad_mem_asym_wr B_DATA_WIDTH $m_avl_data_width
 
   # intel memory for READ side
+   send_message INFO "add_hdl_instance intel_mem_asym: ad_mem_asym_rd"
 
   add_hdl_instance ad_mem_asym_rd intel_mem_asym 1.0
   set_instance_parameter_value ad_mem_asym_rd DEVICE_FAMILY $m_device_family
@@ -131,6 +135,7 @@ proc p_avl_dacfifo_elab {} {
   set_instance_parameter_value ad_mem_asym_rd B_DATA_WIDTH $m_dac_data_width
 
   # intel memory for bypass logic
+   send_message INFO "add_hdl_instance intel_mem_asym: ad_mem_asym_bypass"
 
   add_hdl_instance ad_mem_asym_bypass intel_mem_asym 1.0
   set_instance_parameter_value ad_mem_asym_bypass DEVICE_FAMILY $m_device_family
