@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2020-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -10,6 +10,7 @@ source ../../scripts/adi_ip_intel.tcl
 ad_ip_create spi_engine_offload {SPI Engine Offload} p_elaboration
 ad_ip_files spi_engine_offload [list\
   $ad_hdl_dir/library/util_cdc/sync_bits.v \
+  $ad_hdl_dir/library/util_cdc/sync_event.v \
   spi_engine_offload.v]
 
 # parameters
@@ -20,11 +21,13 @@ ad_ip_parameter CMD_MEM_ADDRESS_WIDTH INTEGER 4
 ad_ip_parameter SDO_MEM_ADDRESS_WIDTH INTEGER 4
 ad_ip_parameter DATA_WIDTH INTEGER 8
 ad_ip_parameter NUM_OF_SDI INTEGER 1
+ad_ip_parameter SDO_STREAMING INTEGER 0
 
 proc p_elaboration {} {
 
   set data_width [get_parameter_value DATA_WIDTH]
   set num_of_sdi [get_parameter_value NUM_OF_SDI]
+  set disabled_intfs {}
 
   # control interface
 
@@ -57,6 +60,13 @@ proc p_elaboration {} {
   set_interface_property status_sync associatedClock if_spi_clk
   set_interface_property status_sync associatedReset if_spi_resetn
 
+  # interconnect direction interface
+
+  add_interface m_interconnect_ctrl conduit end
+  add_interface_port m_interconnect_ctrl interconnect_dir interconnect_dir output 1
+  set_interface_property m_interconnect_ctrl associatedClock if_spi_clk
+  set_interface_property m_interconnect_ctrl associatedReset if_spi_resetn
+
   # SPI Engine interfaces
 
   ad_interface clock   spi_clk     input 1
@@ -83,6 +93,16 @@ proc p_elaboration {} {
 
   set_interface_property sdo_data associatedClock if_spi_clk
   set_interface_property sdo_data associatedReset if_spi_resetn
+
+  ## SDO streaming data interface
+
+  add_interface s_axis_sdo axi4stream end
+  add_interface_port s_axis_sdo s_axis_sdo_valid  tvalid   input  1
+  add_interface_port s_axis_sdo s_axis_sdo_ready  tready   output 1
+  add_interface_port s_axis_sdo s_axis_sdo_data   tdata    input  $data_width
+
+  set_interface_property s_axis_sdo associatedClock if_spi_clk
+  set_interface_property s_axis_sdo associatedReset if_spi_resetn
 
   ## SDI data interface
 
@@ -114,4 +134,11 @@ proc p_elaboration {} {
   set_interface_property offload_sdi associatedClock if_spi_clk
   set_interface_property offload_sdi associatedReset if_spi_resetn
 
+  if {[get_parameter_value SDO_STREAMING] != 1} {
+    lappend disabled_intfs s_axis_sdo
+  }
+
+  foreach intf $disabled_intfs {
+    set_interface_property $intf ENABLED false
+  }
 }

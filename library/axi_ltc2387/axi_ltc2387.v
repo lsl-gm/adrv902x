@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2022-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -48,8 +48,8 @@ module axi_ltc2387 #(
   parameter USERPORTS_DISABLE = 0,
   parameter DATAFORMAT_DISABLE = 0,
   parameter ADC_INIT_DELAY = 22,
-  parameter ADC_RES = 16,
-  parameter OUT_RES = 16,
+  parameter ADC_RES = 18, // 18-bit or 16-bit resolution
+  parameter OUT_RES = 32, // 32-bit for ADC_RES=18 or 16-bit for ADC_RES=16
   parameter TWOLANES = 1
 ) (
   input                     delay_clk,
@@ -218,6 +218,7 @@ module axi_ltc2387 #(
     .DATA_WIDTH (2),
     .BASE_ADDRESS (6'h02)
   ) i_delay_cntrl (
+    .core_rst (1'b0),
     .delay_clk (delay_clk),
     .delay_rst (delay_rst),
     .delay_locked (delay_locked_s),

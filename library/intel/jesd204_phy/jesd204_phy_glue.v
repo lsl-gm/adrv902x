@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -41,7 +41,7 @@ module jesd204_phy_glue #(
   parameter NUM_OF_LANES = 1,
   parameter LANE_INVERT = 0
 ) (
-  input [WIDTH-1:0] in,
+  input  [WIDTH-1:0] in,
   output [WIDTH-1:0] out,
   output [CONST_WIDTH-1:0] const_out,
   output [NUM_OF_LANES-1:0] polinv

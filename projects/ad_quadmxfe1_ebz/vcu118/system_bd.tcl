@@ -1,30 +1,51 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
-## ADC FIFO depth in samples per converter
-set adc_fifo_samples_per_converter [expr $ad_project_params(RX_KS_PER_CHANNEL)*1024]
-## DAC FIFO depth in samples per converter
-set dac_fifo_samples_per_converter [expr $ad_project_params(TX_KS_PER_CHANNEL)*1024]
+## Offload attributes
+set adc_offload_type 0                   ; ## BRAM
+set adc_offload_size [expr 2*1024*1024]  ; ## 2 MB
+
+set dac_offload_type 0                   ; ## BRAM
+set dac_offload_size [expr 2*1024*1024]  ; ## 2 MB
 
 source $ad_hdl_dir/projects/common/vcu118/vcu118_system_bd.tcl
-source $ad_hdl_dir/projects/common/xilinx/adcfifo_bd.tcl
-source $ad_hdl_dir/projects/common/xilinx/dacfifo_bd.tcl
 source ../common/ad_quadmxfe1_ebz_bd.tcl
 source $ad_hdl_dir/projects/scripts/adi_pd.tcl
+
+ad_ip_parameter $dac_offload_name/storage_unit CONFIG.RD_DATA_REGISTERED 1
+ad_ip_parameter $dac_offload_name/storage_unit CONFIG.RD_FIFO_ADDRESS_WIDTH 3
 
 # Set SPI clock to 100/16 =  6.25 MHz
 ad_ip_parameter axi_spi CONFIG.C_SCK_RATIO 16
 
-set mem_init_sys_path [get_env_param ADI_PROJECT_DIR ""]mem_init_sys.txt;
-
 #system ID
-ad_ip_parameter axi_sysid_0 CONFIG.ROM_ADDR_BITS 9
-ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "[pwd]/$mem_init_sys_path"
-ad_ip_parameter rom_sys_0 CONFIG.ROM_ADDR_BITS 9
-set sys_cstring "sys rom custom string placeholder"
-sysid_gen_sys_init_file $sys_cstring
+ad_ip_parameter axi_sysid_0 CONFIG.ROM_ADDR_BITS 10
+ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "$mem_init_sys_file_path/mem_init_sys.txt"
+ad_ip_parameter rom_sys_0 CONFIG.ROM_ADDR_BITS 10
+
+set sys_cstring "$ad_project_params(JESD_MODE)\
+RX:RATE=$ad_project_params(RX_LANE_RATE)\
+M=$ad_project_params(RX_JESD_M)\
+L=$ad_project_params(RX_JESD_L)\
+S=$ad_project_params(RX_JESD_S)\
+NP=$ad_project_params(RX_JESD_NP)\
+LINKS=$ad_project_params(RX_NUM_LINKS)\
+KS/CH=$ad_project_params(RX_KS_PER_CHANNEL)\
+PLL_SEL=$ad_project_params(RX_PLL_SEL)\
+TX:RATE=$ad_project_params(TX_LANE_RATE)\
+M=$ad_project_params(TX_JESD_M)\
+L=$ad_project_params(TX_JESD_L)\
+S=$ad_project_params(TX_JESD_S)\
+NP=$ad_project_params(TX_JESD_NP)\
+LINKS=$ad_project_params(TX_NUM_LINKS)\
+KS/CH=$ad_project_params(TX_KS_PER_CHANNEL)\
+PLL_SEL=$ad_project_params(TX_PLL_SEL)\
+REF_CLK=$ad_project_params(REF_CLK_RATE)\
+DAC_TPL_XBAR=$ad_project_params(DAC_TPL_XBAR_ENABLE)"
+
+sysid_gen_sys_init_file $sys_cstring 10
 
 if {$ad_project_params(JESD_MODE) == "8B10B"} {
   # Parameters for 10Gpbs lane rate

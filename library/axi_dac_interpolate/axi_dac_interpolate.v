@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2017-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2017-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -51,6 +51,8 @@ module axi_dac_interpolate #(
   input                 dma_valid_b,
   output                dma_ready_a,
   output                dma_ready_b,
+  input                 last_a,
+  input                 last_b,
 
   input                 dac_enable_a,
   input                 dac_enable_b,
@@ -58,7 +60,6 @@ module axi_dac_interpolate #(
   output      [15:0]    dac_int_data_b,
   output                dac_valid_out_a,
   output                dac_valid_out_b,
-  output                hold_last_sample,
   output                underflow,
 
   input       [ 1:0]    trigger_i,
@@ -93,12 +94,6 @@ module axi_dac_interpolate #(
   reg    [ 1:0]    trigger_i_m1;
   reg    [ 1:0]    trigger_i_m2;
   reg    [ 1:0]    trigger_i_m3;
-  reg              trigger_adc_m1;
-  reg              trigger_adc_m2;
-  reg              trigger_adc_m3;
-  reg              trigger_la_m1;
-  reg              trigger_la_m2;
-  reg              trigger_la_m3;
 
   reg    [ 1:0]    any_edge_trigger;
   reg    [ 1:0]    rise_edge_trigger;
@@ -125,13 +120,14 @@ module axi_dac_interpolate #(
   wire    [ 2:0]    filter_mask_b;
 
   wire              dma_transfer_suspend;
+  wire              flush_dma_s;
   wire              start_sync_channels;
 
   wire              dac_correction_enable_a;
   wire              dac_correction_enable_b;
   wire    [15:0]    dac_correction_coefficient_a;
   wire    [15:0]    dac_correction_coefficient_b;
-  wire    [19:0]    trigger_config;
+  wire    [20:0]    trigger_config;
 
   wire              en_start_trigger;
   wire              en_stop_trigger;
@@ -152,8 +148,11 @@ module axi_dac_interpolate #(
   wire              underflow_a;
   wire              underflow_b;
 
-  wire    [ 1:0]    lsample_hold_config;
-  wire              sync_stop_channels;
+  wire              stop_sync_channels;
+  wire    [ 1:0]    raw_transfer_en;
+  wire    [15:0]    dac_raw_ch_a_data;
+  wire    [15:0]    dac_raw_ch_b_data;
+  wire              rearm_on_last_s;
 
   // signal name changes
 
@@ -173,11 +172,12 @@ module axi_dac_interpolate #(
   assign en_trigger_pins  = trigger_config[17:16];
   assign en_trigger_adc   = trigger_config[18];
   assign en_trigger_la    = trigger_config[19];
+  assign rearm_on_last_s  = trigger_config[20];
 
   assign trigger_active = |trigger_config[19:16];
   assign trigger = (ext_trigger & en_trigger_pins) |
-                   (trigger_adc_m2 & en_trigger_adc) |
-                   (trigger_la_m2 & en_trigger_la);
+                   (trigger_adc & en_trigger_adc) |
+                   (trigger_la & en_trigger_la);
 
   assign ext_trigger = |(any_edge_trigger |
                         rise_edge_trigger |
@@ -190,12 +190,6 @@ module axi_dac_interpolate #(
     trigger_i_m1 <= trigger_i;
     trigger_i_m2 <= trigger_i_m1;
     trigger_i_m3 <= trigger_i_m2;
-
-    trigger_adc_m1 <= trigger_adc;
-    trigger_adc_m2 <= trigger_adc_m1;
-
-    trigger_la_m1 <= trigger_la;
-    trigger_la_m2 <= trigger_la_m1;
   end
 
   always @(posedge dac_clk) begin
@@ -205,9 +199,6 @@ module axi_dac_interpolate #(
     high_level_trigger <= trigger_i_m3 & high_level;
     low_level_trigger <= ~trigger_i_m3 & low_level;
   end
-
-  assign hold_last_sample = lsample_hold_config[0];
-  assign sync_stop_channels = lsample_hold_config[1];
 
   assign underflow = underflow_a | underflow_b;
 
@@ -220,17 +211,22 @@ module axi_dac_interpolate #(
     .dac_data (dac_data_a),
     .dac_valid (dac_valid_a),
     .dac_valid_out (dac_valid_out_a),
-    .sync_stop_channels (sync_stop_channels),
 
     .dac_enable (dac_enable_a),
     .dac_int_data (dac_int_data_a),
     .dma_ready (dma_ready_a),
     .underflow (underflow_a),
+    .rearm_on_last (rearm_on_last_s),
+    .last (last_a),
 
     .filter_mask (filter_mask_a),
     .interpolation_ratio (interpolation_ratio_a),
     .dma_transfer_suspend (dma_transfer_suspend),
     .start_sync_channels (start_sync_channels),
+    .sync_stop_channels (stop_sync_channels),
+    .flush_dma_in (flush_dma_s),
+    .raw_transfer_en (raw_transfer_en[0]),
+    .dac_raw_ch_data (dac_raw_ch_a_data),
     .trigger (trigger),
     .trigger_active (trigger_active),
     .en_start_trigger (en_start_trigger),
@@ -249,8 +245,9 @@ module axi_dac_interpolate #(
     .dac_data (dac_data_b),
     .dac_valid (dac_valid_b),
     .dac_valid_out (dac_valid_out_b),
-    .sync_stop_channels (sync_stop_channels),
     .underflow (underflow_b),
+    .rearm_on_last (rearm_on_last_s),
+    .last (last_b),
 
     .dac_enable (dac_enable_b),
     .dac_int_data (dac_int_data_b),
@@ -260,6 +257,10 @@ module axi_dac_interpolate #(
     .interpolation_ratio (interpolation_ratio_b),
     .dma_transfer_suspend (dma_transfer_suspend),
     .start_sync_channels (start_sync_channels),
+    .sync_stop_channels (stop_sync_channels),
+    .flush_dma_in (flush_dma_s),
+    .raw_transfer_en (raw_transfer_en[1]),
+    .dac_raw_ch_data (dac_raw_ch_b_data),
     .trigger (trigger),
     .trigger_active (trigger_active),
     .en_start_trigger (en_start_trigger),
@@ -279,13 +280,17 @@ module axi_dac_interpolate #(
     .dac_filter_mask_b (filter_mask_b),
 
     .dma_transfer_suspend (dma_transfer_suspend),
+    .flush_dma_out (flush_dma_s),
+    .raw_transfer_en (raw_transfer_en),
+    .dac_raw_ch_a_data (dac_raw_ch_a_data),
+    .dac_raw_ch_b_data (dac_raw_ch_b_data),
     .start_sync_channels (start_sync_channels),
     .dac_correction_enable_a(dac_correction_enable_a),
     .dac_correction_enable_b(dac_correction_enable_b),
     .dac_correction_coefficient_a(dac_correction_coefficient_a),
     .dac_correction_coefficient_b(dac_correction_coefficient_b),
     .trigger_config (trigger_config),
-    .lsample_hold_config (lsample_hold_config),
+    .stop_sync_channels (stop_sync_channels),
 
     .up_rstn (up_rstn),
     .up_clk (up_clk),

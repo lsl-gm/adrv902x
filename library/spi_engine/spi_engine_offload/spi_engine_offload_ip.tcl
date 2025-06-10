@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2015-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2015-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -15,7 +15,7 @@ adi_ip_files spi_engine_offload [list \
 ]
 
 adi_ip_properties_lite spi_engine_offload
-adi_ip_ttcl axi_spi_engine "spi_engine_offload_constr.ttcl"
+adi_ip_ttcl spi_engine_offload "spi_engine_offload_constr.ttcl"
 
 set_property company_url {https://wiki.analog.com/resources/fpga/peripherals/spi_engine/offload} [ipx::current_core]
 
@@ -32,34 +32,34 @@ adi_add_bus "spi_engine_ctrl" "master" \
 	"analog.com:interface:spi_engine_ctrl_rtl:1.0" \
 	"analog.com:interface:spi_engine_ctrl:1.0" \
 	{
-		{"cmd_ready" "CMD_READY"} \
-		{"cmd_valid" "CMD_VALID"} \
-		{"cmd" "CMD_DATA"} \
-		{"sdo_data_ready" "SDO_READY"} \
-		{"sdo_data_valid" "SDO_VALID"} \
-		{"sdo_data" "SDO_DATA"} \
-		{"sdi_data_ready" "SDI_READY"} \
-		{"sdi_data_valid" "SDI_VALID"} \
-		{"sdi_data" "SDI_DATA"} \
-		{"sync_ready" "SYNC_READY"} \
-		{"sync_valid" "SYNC_VALID"} \
-		{"sync_data" "SYNC_DATA"} \
+		{"cmd_ready" "cmd_ready"} \
+		{"cmd_valid" "cmd_valid"} \
+		{"cmd" "cmd_data"} \
+		{"sdo_data_ready" "sdo_ready"} \
+		{"sdo_data_valid" "sdo_valid"} \
+		{"sdo_data" "sdo_data"} \
+		{"sdi_data_ready" "sdi_ready"} \
+		{"sdi_data_valid" "sdi_valid"} \
+		{"sdi_data" "sdi_data"} \
+		{"sync_ready" "sync_ready"} \
+		{"sync_valid" "sync_valid"} \
+		{"sync_data" "sync_data"} \
 	}
 
 adi_add_bus "spi_engine_offload_ctrl" "slave" \
 	"analog.com:interface:spi_engine_offload_ctrl_rtl:1.0" \
 	"analog.com:interface:spi_engine_offload_ctrl:1.0" \
 	{ \
-		{ "ctrl_cmd_wr_en" "CMD_WR_EN"} \
-		{ "ctrl_cmd_wr_data" "CMD_WR_DATA"} \
-		{ "ctrl_sdo_wr_en" "SDO_WR_EN"} \
-		{ "ctrl_sdo_wr_data" "SDO_WR_DATA"} \
-		{ "ctrl_enable" "ENABLE"} \
-		{ "ctrl_enabled" "ENABLED"} \
-		{ "ctrl_mem_reset" "MEM_RESET"} \
-		{ "status_sync_ready" "SYNC_READY"} \
-		{ "status_sync_valid" "SYNC_VALID"} \
-		{ "status_sync_data" "SYNC_DATA"} \
+		{ "ctrl_cmd_wr_en" "cmd_wr_en"} \
+		{ "ctrl_cmd_wr_data" "cmd_wr_data"} \
+		{ "ctrl_sdo_wr_en" "sdo_wr_en"} \
+		{ "ctrl_sdo_wr_data" "sdo_wr_data"} \
+		{ "ctrl_enable" "enable"} \
+		{ "ctrl_enabled" "enabled"} \
+		{ "ctrl_mem_reset" "mem_reset"} \
+		{ "status_sync_ready" "sync_ready"} \
+		{ "status_sync_valid" "sync_valid"} \
+		{ "status_sync_data" "sync_data"} \
 	}
 
 adi_add_bus "offload_sdi" "master" \
@@ -71,8 +71,26 @@ adi_add_bus "offload_sdi" "master" \
 		{"offload_sdi_data" "TDATA"} \
 	}
 
-adi_add_bus_clock "spi_clk" "spi_engine_ctrl:offload_sdi" "spi_resetn"
+adi_add_bus "s_axis_sdo" "slave" \
+	"xilinx.com:interface:axis_rtl:1.0" \
+	"xilinx.com:interface:axis:1.0" \
+	[list {"s_axis_sdo_ready" "TREADY"} \
+	  {"s_axis_sdo_valid" "TVALID"} \
+	  {"s_axis_sdo_data" "TDATA"}]
+
+adi_add_bus "m_interconnect_ctrl" "master" \
+	"analog.com:interface:spi_engine_interconnect_ctrl_rtl:1.0" \
+	"analog.com:interface:spi_engine_interconnect_ctrl:1.0" \
+	{ \
+		{"interconnect_dir" "interconnect_dir"} \
+	}
+adi_add_bus_clock "spi_clk" "m_interconnect_ctrl" "resetn"
+
+adi_add_bus_clock "spi_clk" "spi_engine_ctrl:offload_sdi:s_axis_sdo" "spi_resetn"
 adi_add_bus_clock "ctrl_clk" "spi_engine_offload_ctrl"
+
+adi_set_bus_dependency "s_axis_sdo" "s_axis_sdo" \
+	"(spirit:decode(id('MODELPARAM_VALUE.SDO_STREAMING')) = 1)"
 
 ## Parameter validations
 
@@ -101,6 +119,18 @@ set_property -dict [list \
   "value" "false" \
  ] \
  [ipx::get_hdl_parameters ASYNC_TRIG -of_objects $cc]
+
+## SDO_STREAMING
+set_property -dict [list \
+  "value_format" "bool" \
+  "value" "false" \
+ ] \
+ [ipx::get_user_parameters SDO_STREAMING -of_objects $cc]
+set_property -dict [list \
+  "value_format" "bool" \
+  "value" "false" \
+ ] \
+ [ipx::get_hdl_parameters SDO_STREAMING -of_objects $cc]
 
 ## NUM_OF_SDI
 set_property -dict [list \
@@ -170,6 +200,12 @@ set_property -dict [list \
   "display_name" "Asynchronous trigger" \
   "tooltip" "\[ASYNC_TRIG\] Set if the external trigger is asynchronous to the core clk" \
 ] [ipgui::get_guiparamspec -name "ASYNC_TRIG" -component $cc]
+
+ipgui::add_param -name "SDO_STREAMING" -component $cc -parent $general_group
+set_property -dict [list \
+  "display_name" "SDO Streaming" \
+  "tooltip" "\[SDO_STREAMING\] Enable an AXI-Streaming Slave interface for streaming SDO data during offload." \
+] [ipgui::get_guiparamspec -name "SDO_STREAMING" -component $cc]
 
 ## Command stream FIFO depth configuration
 set cmd_stream_fifo_group [ipgui::add_group -name "Command stream FIFO configuration" -component $cc \

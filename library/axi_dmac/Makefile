@@ -1,5 +1,5 @@
 ####################################################################################
-## Copyright (c) 2018 - 2023 Analog Devices, Inc.
+## Copyright (c) 2018 - 2024 Analog Devices, Inc.
 ### SPDX short identifier: BSD-1-Clause
 ## Auto-generated, do not modify!
 ####################################################################################
@@ -11,6 +11,8 @@ GENERIC_DEPS += ../common/up_axi.v
 GENERIC_DEPS += address_generator.v
 GENERIC_DEPS += axi_dmac.v
 GENERIC_DEPS += axi_dmac_burst_memory.v
+GENERIC_DEPS += axi_dmac_ext_sync.v
+GENERIC_DEPS += axi_dmac_framelock.v
 GENERIC_DEPS += axi_dmac_regmap.v
 GENERIC_DEPS += axi_dmac_regmap_request.v
 GENERIC_DEPS += axi_dmac_reset_manager.v
@@ -24,6 +26,7 @@ GENERIC_DEPS += dest_axi_mm.v
 GENERIC_DEPS += dest_axi_stream.v
 GENERIC_DEPS += dest_fifo_inf.v
 GENERIC_DEPS += dmac_2d_transfer.v
+GENERIC_DEPS += dmac_sg.v
 GENERIC_DEPS += inc_id.vh
 GENERIC_DEPS += request_arb.v
 GENERIC_DEPS += request_generator.v
@@ -44,14 +47,19 @@ XILINX_DEPS += ../interfaces/fifo_rd.xml
 XILINX_DEPS += ../interfaces/fifo_rd_rtl.xml
 XILINX_DEPS += ../interfaces/fifo_wr.xml
 XILINX_DEPS += ../interfaces/fifo_wr_rtl.xml
+XILINX_DEPS += interfaces/if_framelock.xml
+XILINX_DEPS += interfaces/if_framelock_rtl.xml
 
 XILINX_LIB_DEPS += util_axis_fifo
 XILINX_LIB_DEPS += util_cdc
+
+XILINX_INTERFACE_DEPS += axi_dmac/interfaces
 
 INTEL_DEPS += ../util_axis_fifo/util_axis_fifo.v
 INTEL_DEPS += ../util_axis_fifo/util_axis_fifo_address_generator.v
 INTEL_DEPS += ../util_cdc/sync_bits.v
 INTEL_DEPS += ../util_cdc/sync_event.v
+INTEL_DEPS += ../util_cdc/sync_gray.v
 INTEL_DEPS += axi_dmac_constr.sdc
 INTEL_DEPS += axi_dmac_hw.tcl
 

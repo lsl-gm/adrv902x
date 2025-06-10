@@ -19,7 +19,7 @@ Files
 
    * - Name
      - Description
-   * - :git-hdl:`master:library/spi_engine/interfaces/spi_engine_ctrl_rtl.xml`
+   * - :git-hdl:`library/spi_engine/interfaces/spi_engine_ctrl_rtl.xml`
      - Interface definition file
 
 Signal Pins
@@ -31,7 +31,7 @@ Signal Pins
 
    * - Width
      - Name
-     - Direction (Master)
+     - Direction (Manager)
      - Description
    * -
      - ``cmd_ready``
