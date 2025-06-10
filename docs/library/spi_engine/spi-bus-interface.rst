@@ -13,7 +13,7 @@ Files
 
    * - Name
      - Description
-   * - :git-hdl:`master:library/spi_engine/interfaces/spi_master_rtl.xml`
+   * - :git-hdl:`library/spi_engine/interfaces/spi_engine_rtl.xml`
      - Interface definition file
 
 Signal Pins
@@ -24,7 +24,7 @@ Signal Pins
    :header-rows: 1
 
    * - Name
-     - Direction (Master)
+     - Direction (Controller)
      - Description
    * - ``sclk``
      - Output

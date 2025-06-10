@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -36,7 +36,7 @@
 `timescale 1ns/100ps
 
 module reset_manager_tb;
-  parameter VCD_FILE = {`__FILE__,"cd"};
+  parameter VCD_FILE = {"reset_manager_tb.vcd"};
 
   `define TIMEOUT 1000000
   `include "tb_base.v"

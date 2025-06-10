@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2021-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2021-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ################################################################################
 
@@ -277,9 +277,11 @@ create_bd_port -dir I gpio_tx1_enable_in
 create_bd_port -dir I gpio_tx2_enable_in
 
 create_bd_port -dir I ref_clk
-create_bd_port -dir I tx_output_enable
+create_bd_port -dir I mcs_in
+create_bd_port -dir O mcs_out
+create_bd_port -dir O mcs_src
 create_bd_port -dir I mssi_sync
-create_bd_port -dir I system_sync
+create_bd_port -dir I tx_output_enable
 
 create_bd_port -dir I s_1p0_rf_sns_p
 create_bd_port -dir I s_1p0_rf_sns_n
@@ -306,10 +308,14 @@ create_bd_port -dir I s_1v8_mgtravtt_sns_n
 
 # adrv9001
 
+set USE_RX_CLK_FOR_TX1 $ad_project_params(USE_RX_CLK_FOR_TX1)
+set USE_RX_CLK_FOR_TX2 $ad_project_params(USE_RX_CLK_FOR_TX2)
+
 ad_ip_instance axi_adrv9001 axi_adrv9001
 ad_ip_parameter axi_adrv9001 CONFIG.CMOS_LVDS_N 0
-ad_ip_parameter axi_adrv9001 CONFIG.USE_RX_CLK_FOR_TX 0
 ad_ip_parameter axi_adrv9001 CONFIG.EXT_SYNC 1
+ad_ip_parameter axi_adrv9001 CONFIG.USE_RX_CLK_FOR_TX1 $USE_RX_CLK_FOR_TX1
+ad_ip_parameter axi_adrv9001 CONFIG.USE_RX_CLK_FOR_TX2 $USE_RX_CLK_FOR_TX2
 
 # dma for rx1
 
@@ -317,11 +323,14 @@ ad_ip_instance axi_dmac axi_adrv9001_rx1_dma
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.DMA_TYPE_SRC 2
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.DMA_TYPE_DEST 0
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.CYCLIC 0
-ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.SYNC_TRANSFER_START 0
+ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.DMA_DATA_WIDTH_SRC 64
+ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.CACHE_COHERENT 1
+ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.AXI_AXCACHE 0b1111
+ad_ip_parameter axi_adrv9001_rx1_dma CONFIG.AXI_AXPROT 0b010
 
 ad_ip_instance util_cpack2 util_adc_1_pack { \
   NUM_OF_CHANNELS 4 \
@@ -334,14 +343,17 @@ ad_ip_instance axi_dmac axi_adrv9001_rx2_dma
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.DMA_TYPE_SRC 2
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.DMA_TYPE_DEST 0
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.CYCLIC 0
-ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.SYNC_TRANSFER_START 0
+ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.DMA_2D_TRANSFER 0
-ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.DMA_DATA_WIDTH_SRC 32
+ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.DMA_DATA_WIDTH_SRC 64
+ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.CACHE_COHERENT 1
+ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.AXI_AXCACHE 0b1111
+ad_ip_parameter axi_adrv9001_rx2_dma CONFIG.AXI_AXPROT 0b010
 
 ad_ip_instance util_cpack2 util_adc_2_pack { \
-  NUM_OF_CHANNELS 2 \
+  NUM_OF_CHANNELS 4 \
   SAMPLE_DATA_WIDTH 16 \
 }
 
@@ -356,6 +368,9 @@ ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.DMA_DATA_WIDTH_DEST 64
+ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.CACHE_COHERENT 1
+ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.AXI_AXCACHE 0b1111
+ad_ip_parameter axi_adrv9001_tx1_dma CONFIG.AXI_AXPROT 0b010
 
 ad_ip_instance util_upack2 util_dac_1_upack { \
   NUM_OF_CHANNELS 4 \
@@ -373,6 +388,9 @@ ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.DMA_DATA_WIDTH_DEST 32
+ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.CACHE_COHERENT 1
+ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.AXI_AXCACHE 0b1111
+ad_ip_parameter axi_adrv9001_tx2_dma CONFIG.AXI_AXPROT 0b010
 
 ad_ip_instance util_upack2 util_dac_2_upack { \
   NUM_OF_CHANNELS 2 \
@@ -394,10 +412,11 @@ ad_connect  axi_adrv9001/dac_2_clk axi_adrv9001_tx2_dma/m_axis_aclk
 ad_connect  axi_adrv9001/dac_2_clk util_dac_2_upack/clk
 
 ad_connect ref_clk           axi_adrv9001/ref_clk
-
+ad_connect mcs_in            axi_adrv9001/mcs_in
+ad_connect mcs_out           axi_adrv9001/mcs_out
+ad_connect mcs_src           axi_adrv9001/mcs_src
+ad_connect mssi_sync         axi_adrv9001/mssi_sync_in
 ad_connect tx_output_enable  axi_adrv9001/tx_output_enable
-
-ad_connect mssi_sync         axi_adrv9001/mssi_sync
 
 ad_connect rx1_dclk_in_n     axi_adrv9001/rx1_dclk_in_n_NC
 ad_connect rx1_dclk_in_p     axi_adrv9001/rx1_dclk_in_p_dclk_in
@@ -454,6 +473,7 @@ ad_connect  axi_adrv9001/adc_1_data_q1   util_adc_1_pack/fifo_wr_data_3
 ad_connect  axi_adrv9001/adc_1_dovf      util_adc_1_pack/fifo_wr_overflow
 
 ad_connect util_adc_1_pack/packed_fifo_wr axi_adrv9001_rx1_dma/fifo_wr
+ad_connect axi_adrv9001/adc_1_start_sync  axi_adrv9001_rx1_dma/sync
 
 # RX2 - CPACK - RX_DMA2
 ad_connect  axi_adrv9001/adc_2_rst       util_adc_2_pack/reset
@@ -462,10 +482,15 @@ ad_connect  axi_adrv9001/adc_2_enable_i0 util_adc_2_pack/enable_0
 ad_connect  axi_adrv9001/adc_2_data_i0   util_adc_2_pack/fifo_wr_data_0
 ad_connect  axi_adrv9001/adc_2_enable_q0 util_adc_2_pack/enable_1
 ad_connect  axi_adrv9001/adc_2_data_q0   util_adc_2_pack/fifo_wr_data_1
+ad_connect  GND                          util_adc_2_pack/enable_2
+ad_connect  GND                          util_adc_2_pack/fifo_wr_data_2
+ad_connect  GND                          util_adc_2_pack/enable_3
+ad_connect  GND                          util_adc_2_pack/fifo_wr_data_3
 
 ad_connect  axi_adrv9001/adc_2_dovf       util_adc_2_pack/fifo_wr_overflow
 
 ad_connect util_adc_2_pack/packed_fifo_wr axi_adrv9001_rx2_dma/fifo_wr
+ad_connect axi_adrv9001/adc_2_start_sync  axi_adrv9001_rx2_dma/sync
 
 # TX_DMA1 - UPACK - TX1
 ad_connect  axi_adrv9001/dac_1_rst        util_dac_1_upack/reset
@@ -503,8 +528,7 @@ ad_connect  rx2_enable                    axi_adrv9001/rx2_enable
 ad_connect  tx1_enable                    axi_adrv9001/tx1_enable
 ad_connect  tx2_enable                    axi_adrv9001/tx2_enable
 
-ad_connect  system_sync                   axi_adrv9001/adc_sync_in
-ad_connect  system_sync                   axi_adrv9001/dac_sync_in
+ad_connect  GND                           axi_adrv9001/tdd_sync
 
 # system monitor
 
@@ -600,11 +624,11 @@ ad_cpu_interconnect 0x44A60000  axi_adrv9001_tx2_dma
 ad_cpu_interconnect 0x45000000  axi_sysid_0
 ad_cpu_interconnect 0x44A70000  pl_sysmon
 
-ad_mem_hp1_interconnect $sys_dma_clk sys_ps7/S_AXI_HP1
-ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9001_rx1_dma/m_dest_axi
-ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9001_rx2_dma/m_dest_axi
-ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9001_tx1_dma/m_src_axi
-ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9001_tx2_dma/m_src_axi
+ad_mem_hpc0_interconnect $sys_dma_clk sys_ps7/S_AXI_HPC0
+ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9001_rx1_dma/m_dest_axi
+ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9001_rx2_dma/m_dest_axi
+ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9001_tx1_dma/m_src_axi
+ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9001_tx2_dma/m_src_axi
 
 ad_connect $sys_dma_resetn axi_adrv9001_rx1_dma/m_dest_axi_aresetn
 ad_connect $sys_dma_resetn axi_adrv9001_rx2_dma/m_dest_axi_aresetn
@@ -618,11 +642,11 @@ ad_cpu_interrupt ps-11 mb-6 axi_adrv9001_tx1_dma/irq
 ad_cpu_interrupt ps-10 mb-5 axi_adrv9001_tx2_dma/irq
 ad_cpu_interrupt ps-9 mb-4 pl_sysmon/ip2intc_irpt
 
-set mem_init_sys_path [get_env_param ADI_PROJECT_DIR ""]mem_init_sys.txt;
-
 #system ID
 ad_ip_parameter axi_sysid_0 CONFIG.ROM_ADDR_BITS 9
-ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "[pwd]/$mem_init_sys_path"
+ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "$mem_init_sys_file_path/mem_init_sys.txt"
 ad_ip_parameter rom_sys_0 CONFIG.ROM_ADDR_BITS 9
 
-sysid_gen_sys_init_file
+set sys_cstring "USE_RX_CLK_FOR_TX1=$USE_RX_CLK_FOR_TX1,\
+USE_RX_CLK_FOR_TX2=$USE_RX_CLK_FOR_TX2"
+sysid_gen_sys_init_file $sys_cstring

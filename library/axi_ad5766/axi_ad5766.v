@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2017-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2017-2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -106,9 +106,17 @@ module axi_ad5766 #(
   input                                 ctrl_cmd_wr_en,
   input       [15:0]                    ctrl_cmd_wr_data,
 
+  input                                 status_sync_ready,
+  output                                status_sync_valid,
+  output      [ 7:0]                    status_sync_data,
+
   input                                 ctrl_enable,
   output                                ctrl_enabled,
-  input                                 ctrl_mem_reset
+  input                                 ctrl_mem_reset,
+
+  // SPI engine interconnect interface
+
+   output interconnect_dir
 );
 
   // internal wires
@@ -164,6 +172,8 @@ module axi_ad5766 #(
   assign sync_ready = 1'b1;
 
   assign sdi_data_ready = 1'b0;
+  assign status_sync_valid = 1'b0;
+  assign status_sync_data = 8'b0;
 
   generate if (ASYNC_SPI_CLK) begin
 
@@ -179,6 +189,8 @@ module axi_ad5766 #(
     reg ctrl_do_enable = 1'b0;
     wire ctrl_is_enabled;
     reg spi_enabled = 1'b0;
+
+    assign interconnect_dir = spi_enabled;
 
     always @(posedge ctrl_clk) begin
         if (ctrl_enable == 1'b1) begin
@@ -225,6 +237,7 @@ module axi_ad5766 #(
     assign spi_enable_s = ctrl_enable;
     assign ctrl_enabled = spi_enable_s | spi_active;
     assign spi_mem_reset_s = ctrl_mem_reset;
+    assign interconnect_dir = ctrl_enabled;
   end endgenerate
 
   assign spi_cmd_rd_addr_next = spi_cmd_rd_addr + 1;

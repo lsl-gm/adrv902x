@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2021-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2021-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ################################################################################
 
@@ -48,8 +48,8 @@ set_property  -dict {PACKAGE_PIN U6    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100} 
 
 set_property  -dict {PACKAGE_PIN J1    IOSTANDARD LVDS}                          [get_ports tx1_dclk_out_n]     ; ## IO_L15N_65_TX1_DCLK_IN_N
 set_property  -dict {PACKAGE_PIN K1    IOSTANDARD LVDS}                          [get_ports tx1_dclk_out_p]     ; ## IO_L15P_65_TX1_DCLK_IN_P
-set_property  -dict {PACKAGE_PIN L3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx1_dclk_in_n]      ; ## IO_L13N_65_TX1_DCLK_OUT_N
-set_property  -dict {PACKAGE_PIN M3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx1_dclk_in_p]      ; ## IO_L13P_65_TX1_DCLK_OUT_P
+set_property  -dict {PACKAGE_PIN N3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx1_dclk_in_n]      ; ## IO_L13N_65_TX1_DCLK_OUT_N
+set_property  -dict {PACKAGE_PIN N4    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx1_dclk_in_p]      ; ## IO_L13P_65_TX1_DCLK_OUT_P
 set_property  -dict {PACKAGE_PIN J2    IOSTANDARD LVDS}                          [get_ports tx1_idata_out_n]    ; ## IO_L17N_65_TX1_IDATA_IN_N
 set_property  -dict {PACKAGE_PIN J3    IOSTANDARD LVDS}                          [get_ports tx1_idata_out_p]    ; ## IO_L17P_65_TX1_IDATA_IN_P
 set_property  -dict {PACKAGE_PIN K2    IOSTANDARD LVDS}                          [get_ports tx1_qdata_out_n]    ; ## IO_L18N_65_TX1_QDATA_IN_N
@@ -59,8 +59,8 @@ set_property  -dict {PACKAGE_PIN M2    IOSTANDARD LVDS}                         
 
 set_property  -dict {PACKAGE_PIN L5    IOSTANDARD LVDS}                          [get_ports tx2_dclk_out_n]     ; ## IO_L19N_65_TX2_DCLK_IN_N
 set_property  -dict {PACKAGE_PIN M6    IOSTANDARD LVDS}                          [get_ports tx2_dclk_out_p]     ; ## IO_L19P_65_TX2_DCLK_IN_P
-set_property  -dict {PACKAGE_PIN N3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx2_dclk_in_n]      ; ## IO_L14N_65_TX2_DCLK_OUT_N
-set_property  -dict {PACKAGE_PIN N4    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx2_dclk_in_p]      ; ## IO_L14P_65_TX2_DCLK_OUT_P
+set_property  -dict {PACKAGE_PIN L3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx2_dclk_in_n]      ; ## IO_L14N_65_TX2_DCLK_OUT_N
+set_property  -dict {PACKAGE_PIN M3    IOSTANDARD LVDS  DIFF_TERM_ADV TERM_100}  [get_ports tx2_dclk_in_p]      ; ## IO_L14P_65_TX2_DCLK_OUT_P
 set_property  -dict {PACKAGE_PIN K5    IOSTANDARD LVDS}                          [get_ports tx2_idata_out_n]    ; ## IO_L21N_65_TX2_IDATA_IN_N
 set_property  -dict {PACKAGE_PIN K6    IOSTANDARD LVDS}                          [get_ports tx2_idata_out_p]    ; ## IO_L21P_65_TX2_IDATA_IN_P
 set_property  -dict {PACKAGE_PIN K7    IOSTANDARD LVDS}                          [get_ports tx2_qdata_out_n]    ; ## IO_L22N_65_TX2_QDATA_IN_N
@@ -180,19 +180,40 @@ set_property  -dict {PACKAGE_PIN B2   IOSTANDARD ANALOG} [get_ports s_1v8_mgtrav
 
 create_clock -name spi0_clk       -period  100   [get_pins -hier */EMIOSPI0SCLKO]
 
-create_clock -name ref_clk        -period  8.00  [get_ports fpga_ref_clk_p]
+# over-constraint, typicl 34.8 MHz
+create_clock -name ref_clk        -period  8.0  -waveform {0.0 4.0} [get_ports fpga_ref_clk_p]
 
-create_clock -name rx1_dclk_out   -period  2.034 [get_ports rx1_dclk_in_p]
-create_clock -name rx2_dclk_out   -period  2.034 [get_ports rx2_dclk_in_p]
-create_clock -name tx1_dclk_out   -period  2.034 [get_ports tx1_dclk_in_p]
-create_clock -name tx2_dclk_out   -period  2.034 [get_ports tx2_dclk_in_p]
+create_clock -name rx1_dclk_out   -period  2.0  -waveform {0.0 1.0} [get_ports rx1_dclk_in_p]
+create_clock -name rx2_dclk_out   -period  2.0  -waveform {0.0 1.0} [get_ports rx2_dclk_in_p]
+create_clock -name tx1_dclk_out   -period  2.0  -waveform {0.0 1.0} [get_ports tx1_dclk_in_p]
+create_clock -name tx2_dclk_out   -period  2.0  -waveform {0.0 1.0} [get_ports tx2_dclk_in_p]
+
+set_clock_uncertainty  0.2 -from [get_clocks ref_clk] -to [get_clocks rx1_dclk_out]
+set_clock_uncertainty  0.2 -from [get_clocks ref_clk] -to [get_clocks rx2_dclk_out]
+set_clock_uncertainty  0.2 -from [get_clocks ref_clk] -to [get_clocks tx1_dclk_out]
+set_clock_uncertainty  0.2 -from [get_clocks ref_clk] -to [get_clocks tx2_dclk_out]
 
 set_property CLOCK_DELAY_GROUP BALANCE_CLOCKS_1 \
-  [list [get_nets -of [get_pins i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_1_phy/i_div_clk_buf/O]] \
-        [get_nets -of [get_pins i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_1_phy/i_clk_buf_fast/O]] \
+  [list [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_1_phy/i_div_clk_buf/O}]] \
+        [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_1_phy/i_clk_buf_fast/O}]] \
   ]
 
 set_property CLOCK_DELAY_GROUP BALANCE_CLOCKS_2 \
-  [list [get_nets -of [get_pins i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_2_phy/i_div_clk_buf/O]] \
-        [get_nets -of [get_pins i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_2_phy/i_clk_buf_fast/O]] \
+  [list [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_2_phy/i_div_clk_buf/O}]] \
+        [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_rx_2_phy/i_clk_buf_fast/O}]] \
   ]
+
+set_property CLOCK_DELAY_GROUP BALANCE_CLOCKS_3 \
+  [list [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_tx_1_phy/i_div_clk_buf/O}]] \
+        [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_tx_1_phy/i_clk_buf_fast/O}]] \
+  ]
+
+set_property CLOCK_DELAY_GROUP BALANCE_CLOCKS_4 \
+  [list [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_tx_2_phy/i_div_clk_buf/O}]] \
+        [get_nets -of [get_pins {i_system_wrapper/system_i/axi_adrv9001/inst/i_if/i_tx_2_phy/i_clk_buf_fast/O}]] \
+  ]
+
+set_input_delay -clock [get_clocks {ref_clk}] -min -add_delay 2.0 [get_ports {fpga_mcs_in_p}]
+set_input_delay -clock [get_clocks {ref_clk}] -max -add_delay 3.0 [get_ports {fpga_mcs_in_p}]
+
+set_false_path -to [get_pins i_system_wrapper/system_i/axi_adrv9001/inst/i_sync/mssi_sync_in_d_reg/D]

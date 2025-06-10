@@ -3,11 +3,11 @@
 AXI SPI Engine Module
 ================================================================================
 
-.. symbolator:: ../../../library/spi_engine/axi_spi_engine/axi_spi_engine.v
-   :caption: axi_spi_engine
+.. hdl-component-diagram::
 
-The AXI SPI Engine peripheral allows asynchronous interrupt-driven memory-mapped
-access to a SPI Engine Control Interface.
+The :git-hdl:`AXI SPI Engine <library/spi_engine/axi_spi_engine>` IP core
+allows asynchronous interrupt-driven memory-mapped access to a SPI Engine Control
+Interface.
 This is typically used in combination with a software program to dynamically
 generate SPI transactions.
 
@@ -23,9 +23,9 @@ Files
 
    * - Name
      - Description
-   * - :git-hdl:`master:library/spi_engine/axi_spi_engine/axi_spi_engine.v`
+   * - :git-hdl:`library/spi_engine/axi_spi_engine/axi_spi_engine.v`
      - Verilog source for the peripheral.
-   * - :git-hdl:`master:library/spi_engine/axi_spi_engine/axi_spi_engine_ip.tcl`
+   * - :git-hdl:`library/spi_engine/axi_spi_engine/axi_spi_engine_ip.tcl`
      - TCL script to generate the Vivado IP-integrator project for the peripheral.
 
 Configuration Parameters
@@ -56,7 +56,7 @@ Signal and Interface Pins
      - Synchronous active-low reset.
        Resets the internal state of the peripheral.
    * - s_axi
-     - AXI-Lite bus slave.
+     - AXI-Lite bus subordinate.
        Memory-mapped AXI-lite bus that provides access to modules register map.
    * - irq
      - Level-High Interrupt.
@@ -65,7 +65,7 @@ Signal and Interface Pins
    * - spi_clk
      - ``spi_resetn`` is synchronous to this clock.
    * - spi_engine_ctrl
-     - :ref:`spi_engine control-interface` slave.
+     - :ref:`spi_engine control-interface` subordinate.
        SPI Engine Control stream that contains commands and data for the
        execution module.
    * - spi_resetn
@@ -77,7 +77,7 @@ Register Map
 --------------------------------------------------------------------------------
 
 .. hdl-regmap::
-   :name: axi_spi_engine
+   :name: AXI_SPI_ENGINE
 
 Theory of Operation
 --------------------------------------------------------------------------------
@@ -149,24 +149,30 @@ the ID of the last completed event.
 Interrupts
 --------------------------------------------------------------------------------
 
-The SPI Engine AXI peripheral has 4 internal interrupts. One for each of the
-FIFOs which are asserted when the FIFO level falls bellow the almost empty level
-(for the command or SDO FIFO) or rises above the almost full level (for the SDI
-FIFO).
-And one interrupt which is asserted when a new synchronization event arrives.
+The SPI Engine AXI peripheral has 4 internal interrupts, which are
+asserted when:
+
+* ``CMD_ALMOST_EMPTY``: the level falls bellow the almost empty level.
+* ``SDO_ALMOST_EMPTY``: the level falls bellow the almost empty level.
+* ``SDI_ALMOST_FULL``: the level rises above the almost full level.
+* ``SYNC_EVENT``: a new synchronization event arrives.
+
 The peripheral has 1 external interrupt which is supposed to be connected to the
 upstream interrupt controller.
 The external interrupt is a logical OR-operation over the internal interrupts,
 meaning if at least one of the internal interrupts is asserted the external
 interrupt is asserted and only if all internal interrupts are de-asserted the
-external interrupt is de-asserted. In addition, each interrupt has a mask bit
-which can be used to stop the propagation of the internal interrupt to the
-external interrupt. If an interrupt is masked it will count towards the external
-interrupt state as if it were not asserted.
-The mask bits can be modified by writing to the IRQ_MASK register.
-The raw interrupt status can be read from the IRQ_SOURCE register and the
-combined state of the IRQ_MASK and raw interrupt state can be read from the
-IRQ_PENDING register.
+external interrupt is de-asserted.
+
+In addition, each interrupt has a mask bit which can be used to stop the propagation
+of the internal interrupt to the external interrupt.
+If an interrupt is masked it will count towards the external interrupt state as if
+it were not asserted.
+
+The mask bits can be modified by writing to the ``IRQ_MASK`` register.
+The raw interrupt status can be read from the ``IRQ_SOURCE`` register and the
+combined state of the ``IRQ_MASK`` and raw interrupt state can be read from the
+``IRQ_PENDING`` register:
 
 .. code::
 
@@ -177,7 +183,8 @@ FIFO Threshold Interrupts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The FIFO threshold interrupts can be used by software for flow control of the
-command, SDI and SDO streams.
+command, ``SDI`` and ``SDO`` streams.
+
 If an application wants to send more data than what fits into the FIFO can write
 samples into the FIFO until it is full then suspend operation wait for the almost
 empty interrupt and continue writing data to the FIFO.
@@ -192,10 +199,10 @@ watermark.
 SYNC_EVENT Interrupt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The SYNC_EVENT interrupt is asserted when a new sync event is received from the
-sync stream.
-An application that generated a SYNC instruction on the command stream can use
-this interrupt to be notified when the sync instruction has been completed.
-To de-assert, the SYNC_EVENT interrupt the reception of the interrupt needs to
-be acknowledged by the application by writing a 1 to the SYNC_EVENT bit in the
-IRQ_PENDING register.
+The ``SYNC_EVENT`` interrupt is asserted when a new sync event is received from
+the sync stream.
+An application that generated a ``SYNC`` instruction on the command stream can
+use this interrupt to be notified when the sync instruction has been completed.
+
+To de-assert the ``SYNC_EVENT`` interrupt, the application needs to acknowledge its
+reception by writing 1 to the ``SYNC_EVENT`` bit in the ``IRQ_PENDING`` register.

@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -43,7 +43,8 @@ module up_delay_cntrl #(
   parameter   INIT_DELAY = 0,
   parameter   DATA_WIDTH = 8,
   parameter   DRP_WIDTH = 5,
-  parameter   BASE_ADDRESS = 6'h02
+  parameter   BASE_ADDRESS = 6'h02,
+  parameter   CUSTOM_RST = 0
 ) (
 
   // delay interface
@@ -51,6 +52,7 @@ module up_delay_cntrl #(
   input                           delay_clk,
   output                          delay_rst,
   input                           delay_locked,
+  input                           core_rst,
 
   // io interface
 
@@ -196,12 +198,20 @@ module up_delay_cntrl #(
 
   assign delay_rst = delay_rst_s;
 
-  ad_rst i_delay_rst_reg (
-    .rst_async (up_preset),
-    .clk (delay_clk),
-    .rstn (),
-    .rst (delay_rst_s));
+  if (CUSTOM_RST == 1) begin
+    ad_rst i_delay_rst_reg (
+      .rst_async (core_rst),
+      .clk (delay_clk),
+      .rstn (),
+      .rst (delay_rst_s));
+  end else begin
+    ad_rst i_delay_rst_reg (
+      .rst_async (up_preset),
+      .clk (delay_clk),
+      .rstn (),
+      .rst (delay_rst_s));
+  end
+
   end
   endgenerate
-
 endmodule

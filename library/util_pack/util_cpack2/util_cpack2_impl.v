@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2018-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2018-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -51,8 +51,8 @@ module util_cpack2_impl #(
 
   output reg packed_fifo_wr_en = 1'b0,
   input packed_fifo_wr_overflow,
-  output reg packed_fifo_wr_sync = 1'b1,
-  output reg [NUM_OF_CHANNELS*SAMPLE_DATA_WIDTH*SAMPLES_PER_CHANNEL-1:0] packed_fifo_wr_data = 'h00
+  output reg [NUM_OF_CHANNELS*SAMPLE_DATA_WIDTH*SAMPLES_PER_CHANNEL-1:0] packed_fifo_wr_data = 'h00,
+  output reg packed_sync = 1'b1
 );
 
   localparam TOTAL_DATA_WIDTH = SAMPLE_DATA_WIDTH * SAMPLES_PER_CHANNEL * NUM_OF_CHANNELS;
@@ -118,13 +118,13 @@ module util_cpack2_impl #(
   always @(posedge clk) begin
     if (reset_data == 1'b1) begin
       packed_fifo_wr_en <= 1'b0;
-      packed_fifo_wr_sync <= 1'b0;
+      packed_sync <= 1'b0;
     end else if (ready == 1'b1 && data_wr_en == 1'b1) begin
       packed_fifo_wr_en <= 1'b1;
-      packed_fifo_wr_sync <= out_sync;
+      packed_sync <= out_sync;
     end else begin
       packed_fifo_wr_en <= 1'b0;
-      packed_fifo_wr_sync <= 1'b0;
+      packed_sync <= 1'b0;
     end
   end
 

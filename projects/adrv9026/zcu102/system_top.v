@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2023-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -55,8 +55,6 @@ module system_top (
   output                  rx_sync_n,
   output                  rx_os_sync_p,
   output                  rx_os_sync_n,
-//  output                  rx_sync_2_p,
-//  output                  rx_sync_2_n,
   input                   tx_sync_p,
   input                   tx_sync_n,
   input                   tx_sync_1_p,
@@ -137,9 +135,13 @@ module system_top (
     .O (ref_clk),
     .ODIV2 ());
 
-  IBUFGDS i_rx_clk_ibufg_1 (
+  IBUFDS i_core_clk_ibufds_1 (
     .I (core_clk_p),
     .IB (core_clk_n),
+    .O (core_clk_in));
+
+  BUFG i_core_clk_bufg (
+    .I (core_clk_in),
     .O (core_clk));
 
   OBUFDS i_obufds_rx_sync (
@@ -151,11 +153,6 @@ module system_top (
     .I (rx_os_sync),
     .O (rx_os_sync_p),
     .OB (rx_os_sync_n));
-
-//  OBUFDS i_obufds_rx_sync_2 (
-//    .I (rx_sync_2),
-//    .O (rx_sync_2_p),
-//    .OB (rx_sync_2_n));
 
   IBUFDS i_ibufds_tx_sync (
     .I (tx_sync_p),

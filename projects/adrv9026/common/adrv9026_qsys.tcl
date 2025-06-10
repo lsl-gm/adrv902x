@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2023-2024 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -28,7 +28,6 @@ set_instance_parameter_value device_clk {EXPLICIT_CLOCK_RATE} {246000000}
 add_interface device_clk clock sink
 set_interface_property device_clk EXPORT_OF device_clk.in_clk
 
-
 # adrv9026_tx JESD204
 
 add_instance adrv9026_tx_jesd204 adi_jesd204
@@ -39,8 +38,8 @@ set_instance_parameter_value adrv9026_tx_jesd204 {LANE_RATE} {9840}
 set_instance_parameter_value adrv9026_tx_jesd204 {REFCLK_FREQUENCY} {246}
 set_instance_parameter_value adrv9026_tx_jesd204 {NUM_OF_LANES} $TX_NUM_OF_LANES
 set_instance_parameter_value adrv9026_tx_jesd204 {EXT_DEVICE_CLK_EN} {1}
-set_instance_parameter_value adrv9026_tx_jesd204 {LANE_MAP} {3 2 1 0}
-set_instance_parameter_value adrv9026_tx_jesd204 {LANE_INVERT} {0x5}
+set_instance_parameter_value adrv9026_tx_jesd204 {LANE_MAP} {2 3 1 0}
+set_instance_parameter_value adrv9026_tx_jesd204 {LANE_INVERT} {0x6}
 
 add_connection sys_clk.clk adrv9026_tx_jesd204.sys_clk
 add_connection sys_clk.clk_reset adrv9026_tx_jesd204.sys_resetn
@@ -63,7 +62,7 @@ set_instance_parameter_value adrv9026_rx_jesd204 {LANE_RATE} {9840}
 set_instance_parameter_value adrv9026_rx_jesd204 {REFCLK_FREQUENCY} {246}
 set_instance_parameter_value adrv9026_rx_jesd204 {EXT_DEVICE_CLK_EN} {1}
 set_instance_parameter_value adrv9026_rx_jesd204 {NUM_OF_LANES} $RX_NUM_OF_LANES
-set_instance_parameter_value adrv9026_rx_jesd204 {LANE_MAP} {1 0 2 3}
+# set_instance_parameter_value adrv9026_rx_jesd204 {LANE_MAP} {}
 set_instance_parameter_value adrv9026_rx_jesd204 {LANE_INVERT} {0xF}
 
 add_connection sys_clk.clk adrv9026_rx_jesd204.sys_clk
@@ -196,13 +195,13 @@ set_instance_parameter_value axi_adrv9026_rx_dma {DMA_TYPE_SRC} {2}
 set_instance_parameter_value axi_adrv9026_rx_dma {FIFO_SIZE} {32}
 add_connection device_clk.out_clk axi_adrv9026_rx_dma.if_fifo_wr_clk
 add_connection axi_adrv9026_rx_cpack.if_packed_fifo_wr_en axi_adrv9026_rx_dma.if_fifo_wr_en
-add_connection axi_adrv9026_rx_cpack.if_packed_fifo_wr_sync axi_adrv9026_rx_dma.if_fifo_wr_sync
+add_connection axi_adrv9026_rx_cpack.if_packed_sync axi_adrv9026_rx_dma.if_sync
 add_connection axi_adrv9026_rx_cpack.if_packed_fifo_wr_data axi_adrv9026_rx_dma.if_fifo_wr_din
 add_connection axi_adrv9026_rx_dma.if_fifo_wr_overflow axi_adrv9026_rx_cpack.if_packed_fifo_wr_overflow
 add_connection sys_clk.clk axi_adrv9026_rx_dma.s_axi_clock
 add_connection sys_clk.clk_reset axi_adrv9026_rx_dma.s_axi_reset
-add_connection sys_dma_clk.clk axi_adrv9026_rx_dma.m_dest_axi_clock
-add_connection sys_dma_clk.clk_reset axi_adrv9026_rx_dma.m_dest_axi_reset
+add_connection sys_dma_clk_2.clk axi_adrv9026_rx_dma.m_dest_axi_clock
+add_connection sys_dma_clk_2.clk_reset axi_adrv9026_rx_dma.m_dest_axi_reset
 
 # adrv9026 gpio
 
@@ -256,7 +255,7 @@ ad_cpu_interconnect 0x00070000 avl_adrv9026_gpio.s1
 # dma interconnects
 
 ad_dma_interconnect axi_adrv9026_tx_dma.m_src_axi
-ad_dma_interconnect axi_adrv9026_rx_dma.m_dest_axi
+ad_dma_interconnect_2 axi_adrv9026_rx_dma.m_dest_axi
 
 # interrupts
 

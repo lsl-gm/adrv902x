@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -40,17 +40,24 @@ module axi_dmac #(
   parameter ID = 0,
   parameter DMA_DATA_WIDTH_SRC = 64,
   parameter DMA_DATA_WIDTH_DEST = 64,
+  parameter DMA_DATA_WIDTH_SG = 64,
   parameter DMA_LENGTH_WIDTH = 24,
   parameter DMA_2D_TRANSFER = 0,
+  parameter DMA_SG_TRANSFER = 0,
   parameter ASYNC_CLK_REQ_SRC = 1,
   parameter ASYNC_CLK_SRC_DEST = 1,
   parameter ASYNC_CLK_DEST_REQ = 1,
+  parameter ASYNC_CLK_REQ_SG = 1,
+  parameter ASYNC_CLK_SRC_SG = 1,
+  parameter ASYNC_CLK_DEST_SG = 1,
   parameter AXI_SLICE_DEST = 0,
   parameter AXI_SLICE_SRC = 0,
+  parameter AXIS_TUSER_SYNC = 1,
   parameter SYNC_TRANSFER_START = 0,
   parameter CYCLIC = 1,
   parameter DMA_AXI_PROTOCOL_DEST = 0,
   parameter DMA_AXI_PROTOCOL_SRC = 0,
+  parameter DMA_AXI_PROTOCOL_SG = 0,
   parameter DMA_TYPE_DEST = 0,
   parameter DMA_TYPE_SRC = 2,
   parameter DMA_AXI_ADDR_WIDTH = 32,
@@ -58,12 +65,30 @@ module axi_dmac #(
   parameter FIFO_SIZE = 8, // In bursts
   parameter AXI_ID_WIDTH_SRC = 1,
   parameter AXI_ID_WIDTH_DEST = 1,
+  parameter AXI_ID_WIDTH_SG = 1,
   parameter DMA_AXIS_ID_W = 8,
   parameter DMA_AXIS_DEST_W = 4,
   parameter DISABLE_DEBUG_REGISTERS = 0,
   parameter ENABLE_DIAGNOSTICS_IF = 0,
   parameter ALLOW_ASYM_MEM = 0,
-  parameter CACHE_COHERENT_DEST = 0
+  parameter CACHE_COHERENT = 0,
+  parameter [3:0] AXI_AXCACHE = 4'b0011,
+  parameter [2:0] AXI_AXPROT = 3'b000,
+  parameter DMA_2D_TLAST_MODE = 0,
+  parameter FRAMELOCK = 0,
+  parameter MAX_NUM_FRAMES_WIDTH = 3,
+  parameter USE_EXT_SYNC = 0,
+  parameter AUTORUN = 0,
+  parameter AUTORUN_FLAGS = 0,
+  parameter AUTORUN_SRC_ADDR = 0,
+  parameter AUTORUN_DEST_ADDR = 0,
+  parameter AUTORUN_X_LENGTH = 0,
+  parameter AUTORUN_Y_LENGTH = 0,
+  parameter AUTORUN_SRC_STRIDE = 0,
+  parameter AUTORUN_DEST_STRIDE = 0,
+  parameter AUTORUN_SG_ADDRESS = 0,
+  parameter AUTORUN_FRAMELOCK_CONFIG = 0,
+  parameter AUTORUN_FRAMELOCK_STRIDE = 0
 ) (
 
   // Slave AXI interface
@@ -92,6 +117,9 @@ module axi_dmac #(
 
   // Interrupt
   output irq,
+
+  // Transfer Start Sync Signal
+  input sync,
 
   // Master AXI interface
   input                                    m_dest_axi_aclk,
@@ -187,6 +215,52 @@ module axi_dmac #(
   output [AXI_ID_WIDTH_SRC-1:0]            m_src_axi_wid,
   input  [AXI_ID_WIDTH_SRC-1:0]            m_src_axi_bid,
 
+  // Master AXI interface
+  input                                    m_sg_axi_aclk,
+  input                                    m_sg_axi_aresetn,
+
+  // Read address
+  input                                    m_sg_axi_arready,
+  output                                   m_sg_axi_arvalid,
+  output [DMA_AXI_ADDR_WIDTH-1:0]          m_sg_axi_araddr,
+  output [7-(4*DMA_AXI_PROTOCOL_SG):0]     m_sg_axi_arlen,
+  output [ 2:0]                            m_sg_axi_arsize,
+  output [ 1:0]                            m_sg_axi_arburst,
+  output [ 2:0]                            m_sg_axi_arprot,
+  output [ 3:0]                            m_sg_axi_arcache,
+  output [AXI_ID_WIDTH_SG-1:0]             m_sg_axi_arid,
+  output [DMA_AXI_PROTOCOL_SG:0]           m_sg_axi_arlock,
+
+  // Read data and response
+  input  [DMA_DATA_WIDTH_SG-1:0]           m_sg_axi_rdata,
+  output                                   m_sg_axi_rready,
+  input                                    m_sg_axi_rvalid,
+  input  [ 1:0]                            m_sg_axi_rresp,
+  input  [AXI_ID_WIDTH_SG-1:0]             m_sg_axi_rid,
+  input                                    m_sg_axi_rlast,
+
+  // Unused write interface
+  output                                   m_sg_axi_awvalid,
+  output [DMA_AXI_ADDR_WIDTH-1:0]          m_sg_axi_awaddr,
+  output [7-(4*DMA_AXI_PROTOCOL_SG):0]     m_sg_axi_awlen,
+  output [ 2:0]                            m_sg_axi_awsize,
+  output [ 1:0]                            m_sg_axi_awburst,
+  output [ 3:0]                            m_sg_axi_awcache,
+  output [ 2:0]                            m_sg_axi_awprot,
+  input                                    m_sg_axi_awready,
+  output                                   m_sg_axi_wvalid,
+  output [DMA_DATA_WIDTH_SG-1:0]           m_sg_axi_wdata,
+  output [(DMA_DATA_WIDTH_SG/8)-1:0]       m_sg_axi_wstrb,
+  output                                   m_sg_axi_wlast,
+  input                                    m_sg_axi_wready,
+  input                                    m_sg_axi_bvalid,
+  input  [ 1:0]                            m_sg_axi_bresp,
+  output                                   m_sg_axi_bready,
+  output [AXI_ID_WIDTH_SG-1:0]             m_sg_axi_awid,
+  output [DMA_AXI_PROTOCOL_SG:0]           m_sg_axi_awlock,
+  output [AXI_ID_WIDTH_SG-1:0]             m_sg_axi_wid,
+  input  [AXI_ID_WIDTH_SG-1:0]             m_sg_axi_bid,
+
   // Slave streaming AXI interface
   input                                    s_axis_aclk,
   output                                   s_axis_ready,
@@ -218,16 +292,31 @@ module axi_dmac #(
   input                                    fifo_wr_en,
   input  [DMA_DATA_WIDTH_SRC-1:0]          fifo_wr_din,
   output                                   fifo_wr_overflow,
-  input                                    fifo_wr_sync,
   output                                   fifo_wr_xfer_req,
 
-  // Input FIFO interface
+  // Output FIFO interface
   input                                    fifo_rd_clk,
   input                                    fifo_rd_en,
   output                                   fifo_rd_valid,
   output [DMA_DATA_WIDTH_DEST-1:0]         fifo_rd_dout,
   output                                   fifo_rd_underflow,
   output                                   fifo_rd_xfer_req,
+
+  // Frame lock interface
+  // Writer mode
+  input  [MAX_NUM_FRAMES_WIDTH-1:0] m_frame_in,
+  input                             m_frame_in_valid,
+  output [MAX_NUM_FRAMES_WIDTH-1:0] m_frame_out,
+  output                            m_frame_out_valid,
+  // Reader mode
+  input  [MAX_NUM_FRAMES_WIDTH-1:0] s_frame_in,
+  input                             s_frame_in_valid,
+  output [MAX_NUM_FRAMES_WIDTH-1:0] s_frame_out,
+  output                            s_frame_out_valid,
+
+  // External sync interface
+  input src_ext_sync,
+  input dest_ext_sync,
 
   // Diagnostics interface
   output  [7:0] dest_diag_level_bursts
@@ -257,6 +346,14 @@ module axi_dmac #(
     DMA_DATA_WIDTH_SRC > 32 ? 3 :
     DMA_DATA_WIDTH_SRC > 16 ? 2 :
     DMA_DATA_WIDTH_SRC > 8 ? 1 : 0;
+  localparam BYTES_PER_BEAT_WIDTH_SG = DMA_DATA_WIDTH_SG > 1024 ? 8 :
+    DMA_DATA_WIDTH_SG > 512 ? 7 :
+    DMA_DATA_WIDTH_SG > 256 ? 6 :
+    DMA_DATA_WIDTH_SG > 128 ? 5 :
+    DMA_DATA_WIDTH_SG > 64 ? 4 :
+    DMA_DATA_WIDTH_SG > 32 ? 3 :
+    DMA_DATA_WIDTH_SG > 16 ? 2 :
+    DMA_DATA_WIDTH_SG > 8 ? 1 : 0;
   localparam ID_WIDTH = (FIFO_SIZE) > 64 ? 8 :
     (FIFO_SIZE) > 32 ? 7 :
     (FIFO_SIZE) > 16 ? 6 :
@@ -318,6 +415,10 @@ module axi_dmac #(
     REAL_MAX_BYTES_PER_BURST > 4 ? 3 :
     REAL_MAX_BYTES_PER_BURST > 2 ? 2 : 1;
 
+  // 0 - MM writer , 1 - MM reader
+  localparam FRAMELOCK_MODE = DMA_TYPE_SRC == DMA_TYPE_AXI_MM &&
+                              DMA_TYPE_DEST != DMA_TYPE_AXI_MM;
+
   // ID signals from the DMAC, just for debugging
   wire [ID_WIDTH-1:0] dest_request_id;
   wire [ID_WIDTH-1:0] dest_data_id;
@@ -331,33 +432,8 @@ module axi_dmac #(
   wire [31:0] dbg_ids0;
   wire [31:0] dbg_ids1;
 
-  assign m_dest_axi_araddr = 'd0;
-  assign m_dest_axi_arlen = 'd0;
-  assign m_dest_axi_arsize = 'd0;
-  assign m_dest_axi_arburst = 'd0;
-  assign m_dest_axi_arcache = 'd0;
-  assign m_dest_axi_arprot = 'd0;
-  assign m_dest_axi_awid = 'h0;
-  assign m_dest_axi_awlock = 'h0;
-  assign m_dest_axi_wid = 'h0;
-  assign m_dest_axi_arid = 'h0;
-  assign m_dest_axi_arlock = 'h0;
-  assign m_src_axi_awaddr = 'd0;
-  assign m_src_axi_awlen = 'd0;
-  assign m_src_axi_awsize = 'd0;
-  assign m_src_axi_awburst = 'd0;
-  assign m_src_axi_awcache = 'd0;
-  assign m_src_axi_awprot = 'd0;
-  assign m_src_axi_wdata = 'd0;
-  assign m_src_axi_wstrb = 'd0;
-  assign m_src_axi_wlast = 'd0;
-  assign m_src_axi_awid = 'h0;
-  assign m_src_axi_awlock = 'h0;
-  assign m_src_axi_wid = 'h0;
-  assign m_src_axi_arid = 'h0;
-  assign m_src_axi_arlock = 'h0;
-
   wire up_req_eot;
+  wire [31:0] up_req_sg_desc_id;
   wire [BYTES_PER_BURST_WIDTH-1:0] up_req_measured_burst_length;
   wire up_response_partial;
   wire up_response_valid;
@@ -365,17 +441,26 @@ module axi_dmac #(
 
   wire ctrl_enable;
   wire ctrl_pause;
+  wire ctrl_hwdesc;
 
   wire up_dma_req_valid;
   wire up_dma_req_ready;
   wire [DMA_AXI_ADDR_WIDTH-1:BYTES_PER_BEAT_WIDTH_DEST] up_dma_req_dest_address;
   wire [DMA_AXI_ADDR_WIDTH-1:BYTES_PER_BEAT_WIDTH_SRC] up_dma_req_src_address;
+  wire [DMA_AXI_ADDR_WIDTH-1:BYTES_PER_BEAT_WIDTH_SG] up_dma_req_sg_address;
   wire [DMA_LENGTH_WIDTH-1:0] up_dma_req_x_length;
   wire [DMA_LENGTH_WIDTH-1:0] up_dma_req_y_length;
   wire [DMA_LENGTH_WIDTH-1:0] up_dma_req_dest_stride;
   wire [DMA_LENGTH_WIDTH-1:0] up_dma_req_src_stride;
+  wire [MAX_NUM_FRAMES_WIDTH-1:0] up_dma_req_flock_framenum;
+  wire                            up_dma_req_flock_mode;
+  wire                            up_dma_req_flock_wait_writer;
+  wire [MAX_NUM_FRAMES_WIDTH-1:0] up_dma_req_flock_distance;
+  wire [DMA_AXI_ADDR_WIDTH-1:0] up_dma_req_flock_stride;
+  wire ctrl_flock;
   wire up_dma_req_sync_transfer_start;
   wire up_dma_req_last;
+  wire up_dma_req_cyclic;
 
   assign dbg_ids0 = {
     {DBG_ID_PADDING{1'b0}}, dest_response_id,
@@ -396,6 +481,7 @@ module axi_dmac #(
     .DISABLE_DEBUG_REGISTERS(DISABLE_DEBUG_REGISTERS),
     .BYTES_PER_BEAT_WIDTH_DEST(BYTES_PER_BEAT_WIDTH_DEST),
     .BYTES_PER_BEAT_WIDTH_SRC(BYTES_PER_BEAT_WIDTH_SRC),
+    .BYTES_PER_BEAT_WIDTH_SG(BYTES_PER_BEAT_WIDTH_SG),
     .BYTES_PER_BURST_WIDTH(BYTES_PER_BURST_WIDTH),
     .DMA_TYPE_DEST(DMA_TYPE_DEST),
     .DMA_TYPE_SRC(DMA_TYPE_SRC),
@@ -406,8 +492,26 @@ module axi_dmac #(
     .HAS_DEST_ADDR(HAS_DEST_ADDR),
     .HAS_SRC_ADDR(HAS_SRC_ADDR),
     .DMA_2D_TRANSFER(DMA_2D_TRANSFER),
+    .DMA_SG_TRANSFER(DMA_SG_TRANSFER),
     .SYNC_TRANSFER_START(SYNC_TRANSFER_START),
-    .CACHE_COHERENT_DEST(CACHE_COHERENT_DEST)
+    .CACHE_COHERENT(CACHE_COHERENT),
+    .AXI_AXCACHE(AXI_AXCACHE),
+    .AXI_AXPROT(AXI_AXPROT),
+    .FRAMELOCK(FRAMELOCK),
+    .DMA_2D_TLAST_MODE(DMA_2D_TLAST_MODE),
+    .MAX_NUM_FRAMES_WIDTH(MAX_NUM_FRAMES_WIDTH),
+    .USE_EXT_SYNC(USE_EXT_SYNC),
+    .AUTORUN(AUTORUN),
+    .AUTORUN_FLAGS(AUTORUN_FLAGS),
+    .AUTORUN_SRC_ADDR(AUTORUN_SRC_ADDR),
+    .AUTORUN_DEST_ADDR(AUTORUN_DEST_ADDR),
+    .AUTORUN_X_LENGTH(AUTORUN_X_LENGTH),
+    .AUTORUN_Y_LENGTH(AUTORUN_Y_LENGTH),
+    .AUTORUN_SRC_STRIDE(AUTORUN_SRC_STRIDE),
+    .AUTORUN_DEST_STRIDE(AUTORUN_DEST_STRIDE),
+    .AUTORUN_SG_ADDRESS(AUTORUN_SG_ADDRESS),
+    .AUTORUN_FRAMELOCK_CONFIG(AUTORUN_FRAMELOCK_CONFIG),
+    .AUTORUN_FRAMELOCK_STRIDE(AUTORUN_FRAMELOCK_STRIDE)
   ) i_regmap (
     .s_axi_aclk(s_axi_aclk),
     .s_axi_aresetn(s_axi_aresetn),
@@ -438,21 +542,31 @@ module axi_dmac #(
      // Control interface
     .ctrl_enable(ctrl_enable),
     .ctrl_pause(ctrl_pause),
+    .ctrl_hwdesc(ctrl_hwdesc),
+    .ctrl_flock(ctrl_flock),
 
      // Request interface
     .request_valid(up_dma_req_valid),
     .request_ready(up_dma_req_ready),
     .request_dest_address(up_dma_req_dest_address),
     .request_src_address(up_dma_req_src_address),
+    .request_sg_address(up_dma_req_sg_address),
     .request_x_length(up_dma_req_x_length),
     .request_y_length(up_dma_req_y_length),
     .request_dest_stride(up_dma_req_dest_stride),
     .request_src_stride(up_dma_req_src_stride),
+    .request_flock_framenum(up_dma_req_flock_framenum),
+    .request_flock_mode(up_dma_req_flock_mode),
+    .request_flock_wait_writer(up_dma_req_flock_wait_writer),
+    .request_flock_distance(up_dma_req_flock_distance),
+    .request_flock_stride(up_dma_req_flock_stride),
     .request_sync_transfer_start(up_dma_req_sync_transfer_start),
     .request_last(up_dma_req_last),
+    .request_cyclic(up_dma_req_cyclic),
 
     // DMA response interface
     .response_eot(up_req_eot),
+    .response_sg_desc_id(up_req_sg_desc_id),
     .response_measured_burst_length(up_req_measured_burst_length),
     .response_partial(up_response_partial),
     .response_valid(up_response_valid),
@@ -468,47 +582,70 @@ module axi_dmac #(
   axi_dmac_transfer #(
     .DMA_DATA_WIDTH_SRC(DMA_DATA_WIDTH_SRC),
     .DMA_DATA_WIDTH_DEST(DMA_DATA_WIDTH_DEST),
+    .DMA_DATA_WIDTH_SG(DMA_DATA_WIDTH_SG),
     .DMA_LENGTH_WIDTH(DMA_LENGTH_WIDTH),
     .DMA_LENGTH_ALIGN(DMA_LENGTH_ALIGN),
     .BYTES_PER_BEAT_WIDTH_DEST(BYTES_PER_BEAT_WIDTH_DEST),
     .BYTES_PER_BEAT_WIDTH_SRC(BYTES_PER_BEAT_WIDTH_SRC),
+    .BYTES_PER_BEAT_WIDTH_SG(BYTES_PER_BEAT_WIDTH_SG),
     .BYTES_PER_BURST_WIDTH(BYTES_PER_BURST_WIDTH),
     .DMA_TYPE_DEST(DMA_TYPE_DEST),
     .DMA_TYPE_SRC(DMA_TYPE_SRC),
     .DMA_AXI_ADDR_WIDTH(DMA_AXI_ADDR_WIDTH),
     .DMA_2D_TRANSFER(DMA_2D_TRANSFER),
+    .DMA_2D_TLAST_MODE(DMA_2D_TLAST_MODE),
+    .DMA_SG_TRANSFER(DMA_SG_TRANSFER),
     .ASYNC_CLK_REQ_SRC(ASYNC_CLK_REQ_SRC),
     .ASYNC_CLK_SRC_DEST(ASYNC_CLK_SRC_DEST),
     .ASYNC_CLK_DEST_REQ(ASYNC_CLK_DEST_REQ),
+    .ASYNC_CLK_REQ_SG(ASYNC_CLK_REQ_SG),
     .AXI_SLICE_DEST(AXI_SLICE_DEST),
     .AXI_SLICE_SRC(AXI_SLICE_SRC),
+    .AXIS_TUSER_SYNC(AXIS_TUSER_SYNC),
     .MAX_BYTES_PER_BURST(REAL_MAX_BYTES_PER_BURST),
     .FIFO_SIZE(FIFO_SIZE),
     .ID_WIDTH(ID_WIDTH),
     .AXI_LENGTH_WIDTH_SRC(8-(4*DMA_AXI_PROTOCOL_SRC)),
     .AXI_LENGTH_WIDTH_DEST(8-(4*DMA_AXI_PROTOCOL_DEST)),
+    .AXI_LENGTH_WIDTH_SG(8-(4*DMA_AXI_PROTOCOL_SG)),
     .ENABLE_DIAGNOSTICS_IF(ENABLE_DIAGNOSTICS_IF),
     .ALLOW_ASYM_MEM(ALLOW_ASYM_MEM),
-    .CACHE_COHERENT_DEST(CACHE_COHERENT_DEST)
+    .AXI_AXCACHE(AXI_AXCACHE),
+    .AXI_AXPROT(AXI_AXPROT),
+    .FRAMELOCK(FRAMELOCK),
+    .FRAMELOCK_MODE(FRAMELOCK_MODE),
+    .MAX_NUM_FRAMES_WIDTH(MAX_NUM_FRAMES_WIDTH),
+    .USE_EXT_SYNC(USE_EXT_SYNC)
   ) i_transfer (
     .ctrl_clk(s_axi_aclk),
     .ctrl_resetn(s_axi_aresetn),
 
     .ctrl_enable(ctrl_enable),
     .ctrl_pause(ctrl_pause),
+    .ctrl_hwdesc(ctrl_hwdesc),
+    .ctrl_flock(ctrl_flock),
 
     .req_valid(up_dma_req_valid),
     .req_ready(up_dma_req_ready),
     .req_dest_address(up_dma_req_dest_address),
     .req_src_address(up_dma_req_src_address),
+    .req_sg_address(up_dma_req_sg_address),
     .req_x_length(up_dma_req_x_length),
     .req_y_length(up_dma_req_y_length),
     .req_dest_stride(up_dma_req_dest_stride),
     .req_src_stride(up_dma_req_src_stride),
+    .req_flock_framenum(up_dma_req_flock_framenum),
+    .req_flock_mode(up_dma_req_flock_mode),
+    .req_flock_wait_writer(up_dma_req_flock_wait_writer),
+    .req_flock_distance(up_dma_req_flock_distance),
+    .req_flock_stride(up_dma_req_flock_stride),
     .req_sync_transfer_start(up_dma_req_sync_transfer_start),
+    .req_sync(sync),
     .req_last(up_dma_req_last),
+    .req_cyclic(up_dma_req_cyclic),
 
     .req_eot(up_req_eot),
+    .req_sg_desc_id(up_req_sg_desc_id),
     .req_measured_burst_length(up_req_measured_burst_length),
     .req_response_partial(up_response_partial),
     .req_response_valid(up_response_valid),
@@ -518,6 +655,8 @@ module axi_dmac #(
     .m_dest_axi_aresetn(m_dest_axi_aresetn),
     .m_src_axi_aclk(m_src_axi_aclk),
     .m_src_axi_aresetn(m_src_axi_aresetn),
+    .m_sg_axi_aclk(m_sg_axi_aclk),
+    .m_sg_axi_aresetn(m_sg_axi_aresetn),
 
     .m_axi_awaddr(m_dest_axi_awaddr),
     .m_axi_awlen(m_dest_axi_awlen),
@@ -553,6 +692,21 @@ module axi_dmac #(
     .m_axi_rlast(m_src_axi_rlast),
     .m_axi_rresp(m_src_axi_rresp),
 
+    .m_sg_axi_arready(m_sg_axi_arready),
+    .m_sg_axi_arvalid(m_sg_axi_arvalid),
+    .m_sg_axi_araddr(m_sg_axi_araddr),
+    .m_sg_axi_arlen(m_sg_axi_arlen),
+    .m_sg_axi_arsize(m_sg_axi_arsize),
+    .m_sg_axi_arburst(m_sg_axi_arburst),
+    .m_sg_axi_arprot(m_sg_axi_arprot),
+    .m_sg_axi_arcache(m_sg_axi_arcache),
+
+    .m_sg_axi_rdata(m_sg_axi_rdata),
+    .m_sg_axi_rready(m_sg_axi_rready),
+    .m_sg_axi_rvalid(m_sg_axi_rvalid),
+    .m_sg_axi_rlast(m_sg_axi_rlast),
+    .m_sg_axi_rresp(m_sg_axi_rresp),
+
     .s_axis_aclk(s_axis_aclk),
     .s_axis_ready(s_axis_ready),
     .s_axis_valid(s_axis_valid),
@@ -565,6 +719,7 @@ module axi_dmac #(
     .m_axis_ready(m_axis_ready),
     .m_axis_valid(m_axis_valid),
     .m_axis_data(m_axis_data),
+    .m_axis_user(m_axis_user),
     .m_axis_last(m_axis_last),
     .m_axis_xfer_req(m_axis_xfer_req),
 
@@ -572,7 +727,6 @@ module axi_dmac #(
     .fifo_wr_en(fifo_wr_en),
     .fifo_wr_din(fifo_wr_din),
     .fifo_wr_overflow(fifo_wr_overflow),
-    .fifo_wr_sync(fifo_wr_sync),
     .fifo_wr_xfer_req(fifo_wr_xfer_req),
 
     .fifo_rd_clk(fifo_rd_clk),
@@ -593,6 +747,18 @@ module axi_dmac #(
     .dbg_src_response_id(src_response_id),
     .dbg_status(dbg_status),
 
+    .m_frame_in (m_frame_in),
+    .m_frame_in_valid (m_frame_in_valid),
+    .m_frame_out (m_frame_out),
+    .m_frame_out_valid (m_frame_out_valid),
+    .s_frame_in (s_frame_in),
+    .s_frame_in_valid (s_frame_in_valid),
+    .s_frame_out (s_frame_out),
+    .s_frame_out_valid (s_frame_out_valid),
+
+    .src_ext_sync (src_ext_sync),
+    .dest_ext_sync (dest_ext_sync),
+
     .dest_diag_level_bursts(dest_diag_level_bursts));
 
   assign m_dest_axi_arvalid = 1'b0;
@@ -603,26 +769,51 @@ module axi_dmac #(
   assign m_dest_axi_arburst = 'h0;
   assign m_dest_axi_arcache = 'h0;
   assign m_dest_axi_arprot = 'h0;
+  assign m_dest_axi_awid = 'h0;
+  assign m_dest_axi_awlock = 'h0;
+  assign m_dest_axi_wid = 'h0;
+  assign m_dest_axi_arid = 'h0;
+  assign m_dest_axi_arlock = 'h0;
 
   assign m_src_axi_awvalid = 1'b0;
   assign m_src_axi_wvalid = 1'b0;
   assign m_src_axi_bready = 1'b0;
-  assign m_src_axi_awvalid = 'h0;
   assign m_src_axi_awaddr = 'h0;
   assign m_src_axi_awlen = 'h0;
   assign m_src_axi_awsize = 'h0;
   assign m_src_axi_awburst = 'h0;
   assign m_src_axi_awcache = 'h0;
   assign m_src_axi_awprot = 'h0;
-  assign m_src_axi_wvalid = 'h0;
   assign m_src_axi_wdata = 'h0;
   assign m_src_axi_wstrb = 'h0;
   assign m_src_axi_wlast = 'h0;
+  assign m_src_axi_awid = 'h0;
+  assign m_src_axi_awlock = 'h0;
+  assign m_src_axi_wid = 'h0;
+  assign m_src_axi_arid = 'h0;
+  assign m_src_axi_arlock = 'h0;
+
+  assign m_sg_axi_awvalid = 1'b0;
+  assign m_sg_axi_wvalid = 1'b0;
+  assign m_sg_axi_bready = 1'b0;
+  assign m_sg_axi_awaddr = 'h0;
+  assign m_sg_axi_awlen = 'h0;
+  assign m_sg_axi_awsize = 'h0;
+  assign m_sg_axi_awburst = 'h0;
+  assign m_sg_axi_awcache = 'h0;
+  assign m_sg_axi_awprot = 'h0;
+  assign m_sg_axi_wdata = 'h0;
+  assign m_sg_axi_wstrb = 'h0;
+  assign m_sg_axi_wlast = 'h0;
+  assign m_sg_axi_awid = 'h0;
+  assign m_sg_axi_awlock = 'h0;
+  assign m_sg_axi_wid = 'h0;
+  assign m_sg_axi_arid = 'h0;
+  assign m_sg_axi_arlock = 'h0;
 
   assign m_axis_keep = {DMA_DATA_WIDTH_DEST/8{1'b1}};
   assign m_axis_strb = {DMA_DATA_WIDTH_DEST/8{1'b1}};
   assign m_axis_id = 'h0;
   assign m_axis_dest = 'h0;
-  assign m_axis_user = 'h0;
 
 endmodule

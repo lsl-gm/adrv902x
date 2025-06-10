@@ -8,13 +8,13 @@ ENDTITLE
 
 REG
 0x0000
-REG_VERSION
+VERSION
 Version and Scratch Registers
 ENDREG
 
 FIELD
-[31:0] 0x00010100
-VERSION[31:0]
+[31:0] 0x00020101
+VERSION
 RO
 Version number. Unique to all cores.
 ENDFIELD
@@ -24,13 +24,13 @@ ENDFIELD
 
 REG
 0x0001
-REG_ID
+ID
 Core ID
 ENDREG
 
 FIELD
 [31:0] 0x00000000
-ID[31:0]
+ID
 RO
 Instance identifier number.
 ENDFIELD
@@ -40,13 +40,13 @@ ENDFIELD
 
 REG
 0x0002
-REG_SCRATCH
+SCRATCH
 Version and Scratch Registers
 ENDREG
 
 FIELD
 [31:0] 0x00000000
-SCRATCH[31:0]
+SCRATCH
 RW
 Scratch register.
 ENDFIELD
@@ -56,13 +56,13 @@ ENDFIELD
 
 REG
 0x0003
-REG_CORE_MAGIC
+CORE_MAGIC
 Identification number
 ENDREG
 
 FIELD
-[31:0] 0x504C5347
-CORE_MAGIC[31:0]
+[31:0] 0x601A3471
+CORE_MAGIC
 RW
 Identification number.
 ENDFIELD
@@ -72,7 +72,7 @@ ENDFIELD
 
 REG
 0x0004
-REG_RSTN
+RSTN
 Reset and load values
 ENDREG
 
@@ -84,24 +84,61 @@ Loads the new values written in the config registers.
 ENDFIELD
 
 FIELD
-[0] 0x0
+[0] 0x1
 RESET
 RW
-Reset, default is (0x0).
+Reset, default is (0x1). The default value can be changed by HDL at build time, 
+using SOFTWARE_BRINGUP parameter.
 ENDFIELD
 
 ############################################################################################
 ############################################################################################
 
 REG
+0x0006
+CONFIG
+Features enable register
+ENDREG
+
+FIELD
+[2] 0x0
+EXT_SYNC_PHASE_ALIGN
+RW
+If active, the ext_sync will trigger a phase align at each neg-edge.
+Otherwise the phase align will be armed by a load config toggle.
+This is set by default in HDL, but can be overwritten by software.
+ENDFIELD
+
+FIELD
+[1] 0x0
+FORCE_ALIGN
+RW
+If active the current active pulses are immediately stopped and realigned.
+Otherwise, the synchronized pulses will start only after all running pulse periods end.
+ENDFIELD
+
+FIELD
+[0] 0x1
+START_AT_SYNC
+RW
+If active, the pulses will start after the trigger event.
+Otherwise each pulse will start after a period equal to the one for which it is set.
+Default valew can be overwritten at build time through parameters.
+ENDFIELD
+
+############################################################################################
+############################################################################################
+
+
+REG
 0x0005
-REG_NB_PULSES
+NB_PULSES
 Number of pulses
 ENDREG
 
 FIELD
-[31:0] 0x0000
-NB_PULSES
+[31:0] 0x0001
+N_PWMS
 RO
 Number of configurable pulses.
 ENDFIELD
@@ -110,192 +147,51 @@ ENDFIELD
 ############################################################################################
 
 REG
-0x0010
-REG_PULSE_0_PERIOD
-Pulse 0 period
+0x0010 + n
+WHERE n IS FROM 0 TO 15
+PULSE_n_PERIOD
+Pulse n period
 ENDREG
 
 FIELD
-[31:0] 0x0000
-PULSE_0_PERIOD[31:0]
+[31:0] 0x000A
+PULSE_PERIOD
 RW
-Pulse 0 duration, defined in number of clock cycles.
+Pulse duration, defined in number of clock cycles.
 ENDFIELD
 
 ############################################################################################
 ############################################################################################
 
 REG
-0x0011
-REG_PULSE_0_WIDTH
-Pulse 0 width
+0x0020 + n
+WHERE n IS FROM 0 TO 15
+PULSE_n_WIDTH
+Pulse n width
 ENDREG
 
 FIELD
-[31:0] 0x0000
-PULSE_0_WIDTH[31:0]
+[31:0] 0x0007
+PULSE_WIDTH
 RW
-Pulse 0 width (high time), defined in number of clock cycles.
+Pulse width (high time), defined in number of clock cycles.
 ENDFIELD
 
 ############################################################################################
 ############################################################################################
 
 REG
-0x0012
-REG_PULSE_0_OFFSET
-Pulse 0 offset
+0x0030 + n
+WHERE n IS FROM 0 TO 15
+PULSE_n_OFFSET
+Pulse n offset
 ENDREG
 
 FIELD
 [31:0] 0x0000
-PULSE_0_OFFSET[31:0]
+PULSE_OFFSET
 RW
-Pulse 0 offset, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0013
-REG_PULSE_1_PERIOD
-Pulse 1 period
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_1_PERIOD[31:0]
-RW
-Pulse 1 duration, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0014
-REG_PULSE_1_WIDTH
-Pulse 1 width
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_1_WIDTH[31:0]
-RW
-Pulse 1 width (high time), defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0015
-REG_PULSE_1_OFFSET
-Pulse 1 offset
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_1_OFFSET[31:0]
-RW
-Pulse 1 offset, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0016
-REG_PULSE_2_PERIOD
-Pulse 2 period
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_2_PERIOD[31:0]
-RW
-Pulse 2 duration, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0017
-REG_PULSE_2_WIDTH
-Pulse 2 width
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_2_WIDTH[31:0]
-RW
-Pulse 2 width (high time) defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0018
-REG_PULSE_2_OFFSET
-Pulse 2 offset
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_2_OFFSET[31:0]
-RW
-Pulse 2 offset, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x0019
-REG_PULSE_3_PERIOD
-Pulse 3 period
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_3_PERIOD[31:0]
-RW
-Pulse 3 duration, defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x001a
-REG_PULSE_3_WIDTH
-Pulse 3 width
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_3_WIDTH[31:0]
-RW
-Pulse 3 width (high time) defined in number of clock cycles.
-ENDFIELD
-
-############################################################################################
-############################################################################################
-
-REG
-0x001b
-REG_PULSE_3_OFFSET
-Pulse 3 offset
-ENDREG
-
-FIELD
-[31:0] 0x0000
-PULSE_3_OFFSET[31:0]
-RW
-Pulse 3 offset, defined in number of clock cycles.
+Pulse offset, defined in number of clock cycles.
 ENDFIELD
 
 ############################################################################################

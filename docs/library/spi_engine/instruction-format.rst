@@ -4,7 +4,7 @@ SPI Engine Instruction Set Specification
 ================================================================================
 
 The SPI Engine instruction set is a simple 16-bit instruction set of which
-12-bit is currently allocated (bits 15,14,11,10 are always 0).
+13-bits are currently allocated (bits 15,11,10 are always 0).
 
 Instructions
 --------------------------------------------------------------------------------
@@ -48,7 +48,10 @@ accepted/becomes available.
      - Length
      - n + 1 number of words that will be transferred.
 
-Chip-select Instruction
+
+.. _spi_engine cs-instruction:
+
+Chip-Select Instruction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 == == == == == == = = = = = = = = = =
@@ -60,16 +63,28 @@ Chip-select Instruction
 The chip-select instruction updates the value chip-select output signal of the
 SPI Engine execution module.
 
+The physical outputs on each pin may be inverted relative to the command
+according to the mask set by :ref:`spi_engine cs-invert-mask-instruction`. The
+Invert Mask acts only on the output registers of the Chip-Select pins. Thus, if
+the last 8 bits of the Chip-Select instruction are 0xFE, only CS[0] will be
+active regardless of polarity. The polarity inversion process (if needed) is
+transparent to the programmer.
+
 Before and after the update is performed the execution module is paused for the
 specified delay. The length of the delay depends on the module clock frequency,
-the setting of the prescaler register and the t parameter of the instruction.
-This delay is inserted before and after the update of the chip-select signal,
-so the total execution time of the chip-select
-instruction is twice the delay.
+the setting of the prescaler register and the parameter :math:`t` of the
+instruction. This delay is inserted before and after the update of the
+chip-select signal, so the total execution time of the chip-select instruction
+is twice the delay, with an added fixed 2 clock cycles (fast clock, not
+prescaled) before for the internal logic.
 
 .. math::
 
-   delay = t * \frac{div + 1}{f_{clk}}
+   delay\_{before} = 2+ t * \frac{(div + 1)*2}{f_{clk}}
+
+.. math::
+
+   delay\_{after}  = t * \frac{(div + 1)*2}{f_{clk}}
 
 .. list-table::
    :widths: 10 15 75
@@ -95,7 +110,7 @@ Configuration Write Instruction
 == == == == == == = = = = = = = = = =
 
 The configuration writes instruction updates a
-:ref:`spi_engine configutarion-registers`
+:ref:`spi_engine configuration-registers`
 of the SPI Engine execution module with a new value.
 
 .. list-table::
@@ -127,7 +142,8 @@ Synchronize Instruction
 The synchronize instruction generates a synchronization event on the SYNC output
 stream. This can be used to monitor the progress of the command stream. The
 synchronize instruction is also used by the :ref:`spi_engine interconnect`
-module to identify the end of a transaction and re-start the arbitration process.
+module to identify the end of a transaction and re-start the arbitration
+process.
 
 .. list-table::
    :widths: 10 15 75
@@ -152,11 +168,12 @@ Sleep Instruction
 The sleep instruction stops the execution of the command stream for the
 specified amount of time. The time is based on the external clock frequency the
 configuration value of the prescaler register and the time parameter of the
-instruction.
+instruction. A fixed delay of two clock cycles (fast, not affected by the prescaler)
+is the minimum, needed by the internal logic.
 
 .. math::
 
-   sleep\_time = \frac{(t + 1) * ((div + 1) * 2)}{f_{clk}}
+   sleep\_time = \frac{2+(t+1) * ((div + 1) * 2)}{f_{clk}}
 
 .. list-table::
    :widths: 10 15 75
@@ -167,9 +184,53 @@ instruction.
      - Description
    * - t
      - Time
-     - The amount of time to wait.
+     - The amount of prescaler cycles to wait, minus one.
 
-.. _spi_engine configutarion-registers:
+.. _spi_engine cs-invert-mask-instruction:
+
+CS Invert Mask Instruction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+== == == == == == = = = = = = = = = =
+15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+== == == == == == = = = = = = = = = =
+0  1  0  0  r  r  r r m m m m m m m m
+== == == == == == = = = = = = = = = =
+
+The CS Invert Mask Instructions allows the user to select on a per-pin basis
+whether the Chip Select will be active-low (default) or active-high (inverted).
+Note that the Chip-Select instructions should remain the same because the value
+of CS is inverted at the output register, and additional logic (e.g. reset
+counters) occurs when the CS active state is asserted.
+
+Since the physical values on the pins are inverted at the output, the current
+Invert Mask does not affect the use of the :ref:`spi_engine cs-instruction`. As
+an example, a Chip-Select Instruction with the 's' field equal to 0xFE will
+always result in only CS[0] being active. For an Invert Mask of 0xFF, this would
+result on only CS[0] being high. For an Invert Mask of 0x00, this would result
+on only CS[0] being low. For an Invert Mask of 0x01, this would result on all CS
+pins being high, but only CS[0] is active in this case (since it's the only one
+currently treated as active-high).
+
+This was introduced in
+version 1.02.00 of the core.
+
+.. list-table::
+   :widths: 10 15 75
+   :header-rows: 1
+
+   * - Bits
+     - Name
+     - Description
+   * - r
+     - reserved
+     - Reserved for future use. Must always be set to 0.
+   * - m
+     - Mask
+     - Mask for selecting inverted CS channels. For the bits set to 1, the
+       corresponding channel will be inverted at the output.
+
+.. _spi_engine configuration-registers:
 
 Configuration Registers
 --------------------------------------------------------------------------------
@@ -192,9 +253,13 @@ bus behavior.
    * - Bits
      - Name
      - Description
-   * - [7:3]
+   * - [7:4]
      - reserved
      - Must always be 0.
+   * - [3]
+     - sdo_idle_state
+     - Configures the output of the SDO pin when CS is inactive or during
+       read-only transfers.
    * - [2]
      - three_wire
      - Configures the output of the three_wire pin.
@@ -205,9 +270,9 @@ bus behavior.
        high.
    * - [0]
      - CPHA
-     - Configures the phase of the SCLK signal. When 0, data is updated on the
-       leading edge and sampled on the trailing edge. When 1, data is is
-       sampled on the leading edge and updated on the trailing edge.
+     - Configures the phase of the SCLK signal. When 0, data is sampled on the
+       leading edge and updated on the trailing edge. When 1, data is
+       sampled on the trailing edge and updated on the leading edge.
 
 .. _spi_engine prescaler-configuration-register:
 
@@ -229,7 +294,7 @@ using the following formula:
 
 .. math::
 
-   f_{sclk} = \frac{f_{clk}}{((div + 1) * 2)}
+   f\_{sclk} = \frac{f_{clk}}{((div + 1) * 2)}
 
 
 If no prescaler block is present div is 0.

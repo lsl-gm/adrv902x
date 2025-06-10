@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -209,7 +209,7 @@ module system_top (
     .sys_clk_n (sys_clk_n),
     .sys_clk_p (sys_clk_p),
     .sys_rst (sys_rst),
-    .spi_clk_i (spi_clk),
+    .spi_clk_i (),
     .spi_clk_o (spi_clk),
     .spi_csn_i (spi_csn),
     .spi_csn_o (spi_csn),

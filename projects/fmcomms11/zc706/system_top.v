@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -311,7 +311,6 @@ module system_top (
     .tx_data_7_p (tx_data_p[7]),
     .tx_ref_clk_0 (trx_ref_clk),
     .tx_sync_0 (tx_sync),
-    .tx_sysref_0 (1'b0),
-    .dac_fifo_bypass (gpio_o[60]));
+    .tx_sysref_0 (1'b0));
 
 endmodule

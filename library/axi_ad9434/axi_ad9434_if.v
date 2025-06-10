@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -167,7 +167,7 @@ module axi_ad9434_if #(
     .FPGA_TECHNOLOGY (FPGA_TECHNOLOGY),
     .CLKIN_DS_OR_SE_N (1),
     .MMCM_OR_BUFR_N (1),
-    .MMCM_CLKIN_PERIOD (2),
+    .MMCM_CLKIN_PERIOD (2.156),
     .MMCM_VCO_DIV (6),
     .MMCM_VCO_MUL (12),
     .MMCM_CLK0_DIV (2),

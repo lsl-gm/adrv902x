@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -18,8 +18,6 @@ set_property  -dict {PACKAGE_PIN  AA2 IOSTANDARD LVCMOS18} [get_ports spi_miso] 
 set_property  -dict {PACKAGE_PIN  Y1  IOSTANDARD LVCMOS18} [get_ports spi_mosi]                         ; ## G10  FMC_HPC0_LA03_N           IO_L22N_T3U_N7_DBC_AD0N_66_Y1
 set_property  -dict {PACKAGE_PIN  Y2  IOSTANDARD LVCMOS18} [get_ports spi_clk]                          ; ## G09  FMC_HPC0_LA03_P           IO_L22P_T3U_N6_DBC_AD0P_66_Y2
 set_property  -dict {PACKAGE_PIN  AC3 IOSTANDARD LVCMOS18} [get_ports spi_en]                           ; ## D12  FMC_HPC0_LA05_N           IO_L20N_T3L_N3_AD1N_66_AC3
-# For AD916(1,2,3,4)-FMC-EBZ
-set_property  -dict {PACKAGE_PIN  W2  IOSTANDARD LVCMOS18} [get_ports spi_csn_clk2]                     ; ## D14  FMC_HPC_LA09_P            IO_L10P_T1_11
 
 # For AD9135-FMC-EBZ, AD9136-FMC-EBZ, AD9144-FMC-EBZ, AD9152-FMC-EBZ, AD9154-FMC-EBZ
 set_property  -dict {PACKAGE_PIN  U5  IOSTANDARD LVCMOS18} [get_ports dac_ctrl[0]]                      ; ## H13  FMC_HPC0_LA07_P           IO_L18P_T2U_N10_AD2P_66_U5
@@ -28,8 +26,6 @@ set_property  -dict {PACKAGE_PIN  U4  IOSTANDARD LVCMOS18} [get_ports dac_ctrl[3
 # For AD9171-FMC-EBZ, AD9172-FMC-EBZ, AD9173-FMC-EBZ
 set_property  -dict {PACKAGE_PIN  AC2 IOSTANDARD LVCMOS18} [get_ports dac_ctrl[1]]                      ; ## C10  FMC_HPC0_LA06_P           IO_L19P_T3L_N0_DBC_AD9P_66_AC2
 set_property  -dict {PACKAGE_PIN  AC1 IOSTANDARD LVCMOS18} [get_ports dac_ctrl[2]]                      ; ## C11  FMC_HPC0_LA06_N           IO_L19N_T3L_N1_DBC_AD9N_66_AC1
-# For AD916(1,2,3,4)-FMC-EBZ
-set_property  -dict {PACKAGE_PIN  W1  IOSTANDARD LVCMOS18} [get_ports dac_ctrl[4]]                      ; ## D15  FMC_HPC_LA09_P            IO_L10N_T1_11
 
 set_property  -dict {PACKAGE_PIN  G8} [get_ports tx_ref_clk_p]                                          ; ## D04  FMC_HPC0_GBTCLK0_M2C_C_P  MGTREFCLK0P_229_G8
 set_property  -dict {PACKAGE_PIN  G7} [get_ports tx_ref_clk_n]                                          ; ## D05  FMC_HPC0_GBTCLK0_M2C_C_N  MGTREFCLK0N_229_G7
@@ -66,7 +62,7 @@ set_property  -dict {PACKAGE_PIN  J19 IOSTANDARD LVCMOS33} [get_ports pmod_gpio[
 # Max lane rate of 15.4 Gbps
 create_clock -name tx_ref_clk   -period  2.597 [get_ports tx_ref_clk_p]
 
-# Assumption is that REFCLK and SYSREF have similar propagation delay, 
+# Assumption is that REFCLK and SYSREF have similar propagation delay,
 # and the SYSREF is a source synchronous Center-Aligned signal to REFCLK
 set_input_delay -clock [get_clocks tx_ref_clk] \
   [expr [get_property  PERIOD [get_clocks tx_ref_clk]] / 2] \

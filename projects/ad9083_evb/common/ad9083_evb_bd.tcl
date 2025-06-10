@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2020-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -48,7 +48,7 @@ ad_ip_instance axi_dmac axi_ad9083_rx_dma [list \
   DMA_TYPE_SRC 2 \
   DMA_TYPE_DEST 0 \
   CYCLIC 0 \
-  SYNC_TRANSFER_START 0 \
+  SYNC_TRANSFER_START 1 \
   DMA_2D_TRANSFER 0 \
   MAX_BYTES_PER_BURST 4096 \
   AXI_SLICE_DEST 1 \
@@ -57,6 +57,7 @@ ad_ip_instance axi_dmac axi_ad9083_rx_dma [list \
   DMA_LENGTH_WIDTH 31 \
   DMA_DATA_WIDTH_DEST 128 \
   DMA_DATA_WIDTH_SRC $adc_dma_data_width \
+  CACHE_COHERENT $CACHE_COHERENCY \
 ]
 
 # common cores
@@ -136,6 +137,7 @@ ad_disconnect $sys_dma_clk $sys_dma_clk_pin
 ad_connect $sys_dma_clk [get_bd_pins dma_clk_generator/clk_out1]
 
 ad_connect axi_ad9083_rx_dma/fifo_wr util_ad9083_rx_cpack/packed_fifo_wr
+ad_connect axi_ad9083_rx_dma/sync util_ad9083_rx_cpack/packed_sync
 
 # connections (adc)
 
@@ -170,8 +172,13 @@ ad_mem_hp1_interconnect $sys_cpu_clk axi_ad9083_rx_xcvr/m_axi
 
 # interconnect (mem/dac)
 
-ad_mem_hp2_interconnect $sys_dma_clk sys_ps7/S_AXI_HP2
-ad_mem_hp2_interconnect $sys_dma_clk axi_ad9083_rx_dma/m_dest_axi
+if {$CACHE_COHERENCY} {
+  ad_mem_hpc0_interconnect $sys_dma_clk sys_ps8/S_AXI_HPC0
+  ad_mem_hpc0_interconnect $sys_dma_clk axi_ad9083_rx_dma/m_dest_axi
+} else {
+  ad_mem_hp2_interconnect $sys_dma_clk sys_ps7/S_AXI_HP2
+  ad_mem_hp2_interconnect $sys_dma_clk axi_ad9083_rx_dma/m_dest_axi
+}
 
 # interrupts
 

@@ -122,6 +122,10 @@ proc adi_project {project_name {mode 0} {parameter_list {}} } {
     set device "xcvc1902-vsva2197-2MP-e-S"
     set board [lindex [lsearch -all -inline [get_board_parts] *vck190*] end]
   }
+  if [regexp "_vpk180" $project_name] {
+    set device "xcvp1802-lsvc4072-2MP-e-S"
+    set board [lindex [lsearch -all -inline [get_board_parts] *vpk180*] end]
+  }
   if [regexp "_vc709" $project_name] {
     set device "xc7vx690tffg1761-2"
     set board [lindex [lsearch -all -inline [get_board_parts] *vc709*] end]
@@ -129,6 +133,10 @@ proc adi_project {project_name {mode 0} {parameter_list {}} } {
   if [regexp "_kv260" $project_name] {
     set device "xck26-sfvc784-2LV-c"
     set board [lindex [lsearch -all -inline [get_board_parts] *kv260*] end]
+  }
+  if [regexp "_k26" $project_name] {
+    set device "xck26-sfvc784-2LVI-i"
+    set board [lindex [lsearch -all -inline [get_board_parts] *k26*] end]
   }
 
   adi_project_create $project_name $mode $parameter_list $device $board
@@ -157,6 +165,7 @@ proc adi_project_create {project_name mode parameter_list device {board "not-app
   global IGNORE_VERSION_CHECK
   global ADI_USE_OOC_SYNTHESIS
   global ADI_USE_INCR_COMP
+  global use_smartconnect
 
   if {![info exists ::env(ADI_PROJECT_DIR)]} {
     set actual_project_name $project_name
@@ -169,6 +178,12 @@ proc adi_project_create {project_name mode parameter_list device {board "not-app
     set p_device $device
   }
   set p_board $board
+
+  set use_smartconnect 1
+  if [regexp "^xc7z" $p_device] {
+    # SmartConnect has higher resource utilization and worse timing closure on older families
+    set use_smartconnect 0
+  }
 
   if [regexp "^xc7z" $p_device] {
     set sys_zynq 1

@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -39,7 +39,7 @@ module src_axi_stream #(
 
   parameter ID_WIDTH = 3,
   parameter S_AXIS_DATA_WIDTH = 64,
-  parameter LENGTH_WIDTH = 24,
+  parameter S_AXIS_USER_SYNC = 1,
   parameter BEATS_PER_BURST_WIDTH = 4
 ) (
   input s_axis_aclk,
@@ -81,10 +81,14 @@ module src_axi_stream #(
   output req_ready,
   input [BEATS_PER_BURST_WIDTH-1:0] req_last_burst_length,
   input req_sync_transfer_start,
+  input req_sync,
   input req_xlast
 );
 
+  wire sync;
+
   assign enabled = enable;
+  assign sync = S_AXIS_USER_SYNC ? s_axis_user[0] : req_sync;
 
   data_mover #(
     .ID_WIDTH(ID_WIDTH),
@@ -124,7 +128,7 @@ module src_axi_stream #(
     .s_axi_ready(s_axis_ready),
     .s_axi_data(s_axis_data),
     .s_axi_last(s_axis_last),
-    .s_axi_sync(s_axis_user[0]),
+    .s_axi_sync(sync),
 
     .m_axi_valid(fifo_valid),
     .m_axi_data(fifo_data),

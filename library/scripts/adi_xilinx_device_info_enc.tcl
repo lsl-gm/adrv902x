@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2024 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -35,14 +35,14 @@ set fpga_technology_list { \
         { versal      4 }}
 
 set fpga_family_list { \
-        { Unknown      0 } \
-        { artix        1 } \
-        { kintex       2 } \
-        { virtex       3 } \
-        { zynq         4 } \
-        { versalprime  5 } \
-        { versalaicore 6 } \
-      }
+        { Unknown       0 } \
+        { artix         1 } \
+        { kintex        2 } \
+        { virtex        3 } \
+        { zynq          4 } \
+        { versalprime   5 } \
+        { versalaicore  6 } \
+        { versalpremium 7 }}
 
 set speed_grade_list { \
         { Unknown 0  } \
@@ -80,7 +80,8 @@ set dev_package_list { \
         { fa      17 } \
         { fs      18 } \
         { fi      19 } \
-        { vs      20 }}
+        { vs      20 } \
+        { ls      21 }}
 
 
 set xcvr_type_list { \
@@ -116,6 +117,7 @@ proc adi_device_spec {cellpath param} {
           switch  -regexp -- $part {
              ^xc7          {set series_name 7series}
              ^xczu         {set series_name ultrascale+}
+             ^xcvu.?.p     {set series_name ultrascale+}
              ^x.zu..?p     {set series_name ultrascale+}
              ^xck26        {set series_name ultrascale+}
              ^xc.u         {set series_name ultrascale }

@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2022-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -61,7 +61,10 @@ module system_top (
   inout           fixed_io_ps_srstb,
 
   inout   [ 1:0]  btn,
-  inout   [ 5:0]  led
+  inout   [ 5:0]  led,
+
+  inout           iic_ard_scl,
+  inout           iic_ard_sda
 );
 
   // internal signals
@@ -135,6 +138,8 @@ module system_top (
     .spi1_csn_i (1'b1),
     .spi1_sdi_i (1'b0),
     .spi1_sdo_i (1'b0),
-    .spi1_sdo_o());
+    .spi1_sdo_o (),
+    .iic_ard_scl_io (iic_ard_scl),
+    .iic_ard_sda_io (iic_ard_sda));
 
 endmodule

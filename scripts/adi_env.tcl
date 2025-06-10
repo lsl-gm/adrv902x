@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2022-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -15,7 +15,7 @@ if [info exists ::env(ADI_GHDL_DIR)] {
 }
 
 # Define the supported tool version
-set required_vivado_version "2023.1"
+set required_vivado_version "2024.2"
 if {[info exists ::env(REQUIRED_VIVADO_VERSION)]} {
   set required_vivado_version $::env(REQUIRED_VIVADO_VERSION)
 } elseif {[info exists REQUIRED_VIVADO_VERSION]} {
@@ -31,7 +31,15 @@ if {[info exists ::env(ADI_IGNORE_VERSION_CHECK)]} {
 
 # Define the supported tool version
 if {![info exists REQUIRED_QUARTUS_VERSION]} {
-  set REQUIRED_QUARTUS_VERSION "22.4.0"
+  set REQUIRED_QUARTUS_VERSION "24.2.0"
+}
+
+# Define the supported tool version
+set required_lattice_version "2024.2"
+if {[info exists ::env(REQUIRED_LATTICE_VERSION)]} {
+  set required_lattice_version $::env(REQUIRED_LATTICE_VERSION)
+} elseif {[info exists REQUIRED_LATTICE_VERSION]} {
+  set required_lattice_version $REQUIRED_LATTICE_VERSION
 }
 
 # This helper pocedure retrieves the value of varible from environment if exists,

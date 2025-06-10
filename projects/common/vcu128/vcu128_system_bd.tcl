@@ -1,7 +1,9 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
+
+set CACHE_COHERENCY false
 
 # create board design
 # interface ports
@@ -326,11 +328,11 @@ ad_cpu_interconnect 0x45100000 axi_ddr_cntrl C0_DDR4_S_AXI_CTRL
 
 ### Workaround for DDR controller with control interface
 ### DDR contoller control interface runs at UI clock not CPU clock
-set_property -dict [list CONFIG.NUM_CLKS {3}] [get_bd_cells axi_cpu_interconnect]
-ad_connect axi_ddr_cntrl/c0_ddr4_ui_clk  axi_cpu_interconnect/aclk1
+set_property -dict [list CONFIG.NUM_CLKS {3}] [get_bd_cells axi_dp_interconnect]
+ad_connect axi_ddr_cntrl/c0_ddr4_ui_clk  axi_dp_interconnect/aclk1
 
 ### Peripheral Data Interface runs at the sys_mb_clk frequency
-ad_connect sys_mb_clk axi_cpu_interconnect/aclk2
+ad_connect sys_mb_clk axi_dp_interconnect/aclk2
 
 # interconnect - memory
 
