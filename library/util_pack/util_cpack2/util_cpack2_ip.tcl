@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2018-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2018-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -25,7 +25,6 @@ adi_add_bus "packed_fifo_wr" "master" \
     {"packed_fifo_wr_en" "EN"} \
     {"packed_fifo_wr_data" "DATA"} \
     {"packed_fifo_wr_overflow" "OVERFLOW"} \
-    {"packed_fifo_wr_sync" "SYNC"} \
   }
 adi_add_bus_clock "clk" "packed_fifo_wr" "reset"
 
@@ -40,6 +39,7 @@ foreach {k v} { \
   "NUM_OF_CHANNELS" "Number of Channels" \
   "SAMPLES_PER_CHANNEL" "Samples per Channel" \
   "SAMPLE_DATA_WIDTH" "Sample Width" \
+  "PARALLEL_OR_SERIAL_N" "Parallel prefix sum calculation" \
   } { \
   set p [ipgui::get_guiparamspec -name $k -component $cc]
 #  ipgui::move_param -component $cc -order $i $p -parent $

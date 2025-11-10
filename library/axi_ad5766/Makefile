@@ -1,5 +1,5 @@
 ####################################################################################
-## Copyright (c) 2018 - 2023 Analog Devices, Inc.
+## Copyright (c) 2018 - 2025 Analog Devices, Inc.
 ### SPDX short identifier: BSD-1-Clause
 ## Auto-generated, do not modify!
 ####################################################################################
@@ -22,7 +22,11 @@ XILINX_DEPS += ../spi_engine/interfaces/spi_engine_ctrl.xml
 XILINX_DEPS += ../spi_engine/interfaces/spi_engine_ctrl_rtl.xml
 XILINX_DEPS += ../spi_engine/interfaces/spi_engine_offload_ctrl.xml
 XILINX_DEPS += ../spi_engine/interfaces/spi_engine_offload_ctrl_rtl.xml
+XILINX_DEPS += ../spi_engine/interfaces/spi_engine_interconnect_ctrl.xml
+XILINX_DEPS += ../spi_engine/interfaces/spi_engine_interconnect_ctrl_rtl.xml
 
 XILINX_LIB_DEPS += util_cdc
+
+XILINX_INTERFACE_DEPS += spi_engine/interfaces
 
 include ../scripts/library.mk

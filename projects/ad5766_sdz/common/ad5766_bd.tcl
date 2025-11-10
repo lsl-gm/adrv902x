@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -17,7 +17,7 @@ current_bd_instance /spi
         create_bd_pin -dir I -from 15 -to 0 dma_data
         create_bd_pin -dir I dma_xfer_req
         create_bd_pin -dir I dma_underflow
-        create_bd_intf_pin -mode Master -vlnv analog.com:interface:spi_master_rtl:1.0 m_spi
+        create_bd_intf_pin -mode Master -vlnv analog.com:interface:spi_engine_rtl:1.0 m_spi
 
         ad_ip_instance spi_engine_execution execution
         ad_ip_instance axi_spi_engine axi
@@ -31,6 +31,7 @@ current_bd_instance /spi
         ad_connect  axi/spi_engine_offload_ctrl0 axi_ad5766/spi_engine_offload_ctrl
         ad_connect  axi/spi_engine_ctrl interconnect/s0_ctrl
         ad_connect  axi_ad5766/spi_engine_ctrl interconnect/s1_ctrl
+        ad_connect  axi_ad5766/m_interconnect_ctrl interconnect/s_interconnect_ctrl
         ad_connect  interconnect/m_ctrl execution/ctrl
         ad_connect  m_spi execution/spi
         ad_connect  dma_data axi_ad5766/dma_data
@@ -61,7 +62,7 @@ current_bd_instance /
 ad_connect  sys_cpu_clk spi/clk
 ad_connect  sys_cpu_resetn spi/resetn
 
-create_bd_intf_port -mode Master -vlnv analog.com:interface:spi_master_rtl:1.0 spi
+create_bd_intf_port -mode Master -vlnv analog.com:interface:spi_engine_rtl:1.0 spi
 ad_connect spi/m_spi spi
 
 ad_ip_instance axi_dmac axi_ad5766_dac_dma

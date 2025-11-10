@@ -1,7 +1,9 @@
 ###############################################################################
-## Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
+
+set CACHE_COHERENCY false
 
 # create board design
 # interface ports
@@ -51,7 +53,7 @@ ad_ip_parameter sys_ps7 CONFIG.PCW_USE_FABRIC_INTERRUPT 1
 ad_ip_parameter sys_ps7 CONFIG.PCW_IRQ_F2P_INTR 1
 ad_ip_parameter sys_ps7 CONFIG.PCW_IRQ_F2P_MODE REVERSE
 
-ad_ip_instance xlconcat sys_concat_intc
+ad_ip_instance ilconcat sys_concat_intc
 ad_ip_parameter sys_concat_intc CONFIG.NUM_PORTS 16
 
 ad_ip_instance proc_sys_reset sys_rstgen

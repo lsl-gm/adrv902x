@@ -6,7 +6,7 @@ SPI Engine Tutorial - PulSAR-ADC
 The goal of this tutorial is to present the process of adding
 :ref:`spi_engine` support for an ADI precision converter or family of converters
 using a few simple steps.
-The target carrier is the Digilent Cora-z7s board using a PMOD connector.
+The target carrier is the Digilent Cora Z7S board using a PMOD connector.
 
 Evaluating the target device
 --------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ They all share the same interface and the same PCB, the differences being found
 in their performance. The table below offers a comparison between the timing
 parameters of the SPI interface for these devices. Using this table we can see
 how much they have in common and where the key differences are. All the values
-are for 3.3V VIO since the Cora-z7s is only 3.3V capable.
+are for 3.3V VIO since the Cora Z7S is only 3.3V capable.
 
 +----------+----------+------+----------+----------+----------+----------+
 | Device   | Re       | KSPS | T\_      | T_CONV   | T_CYC    | T_ACQ    |
@@ -68,7 +68,7 @@ SPI Engine hierarchy instantiation
 
 The SPI Engine can be implemented in two ways, either by placing and connecting
 each IP individually or by using the function provided by the
-:git-hdl:`master:library/spi_engine/scripts/spi_engine.tcl` script.
+:git-hdl:`library/spi_engine/scripts/spi_engine.tcl` script.
 
 Using the script ensures that the correct connections are being made and that
 the IP cores will receive the correct parameter configuration since certain
@@ -77,7 +77,7 @@ arguments:
 
 .. code:: tcl
 
-   proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {num_cs 1} {num_sdi 1} {sdi_delay 0} {echo_sclk 0}}
+   proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {num_cs 1} {num_sdi 1} {num_sdo 1} {sdi_delay 0} {echo_sclk 0} {cmd_mem_addr_width 4} {data_mem_addr_width 4} {sdi_fifo_addr_width 5} {sdo_fifo_addr_width 5} {sync_fifo_addr_width 4} {cmd_fifo_addr_width 4}}
 
 **data_width** will set the width of the data bus / data line used by the SPI
 engine to connect to the DMA and which serves the purpose of sending ADC sample
@@ -126,7 +126,7 @@ reference signal using an internal prescaler with this formula:
 
 .. math::
 
-   f_{sclk} = \frac{f_{clk}}{((div + 1) * 2)}
+   f\_{sclk} = \frac{f_{clk}}{((div + 1) * 2)}
 
 Therefore a 160MHz reference clock will be needed for the 40 and 80MHz variants
 and 100MHz for the 50MHz SCLK. The axi_clkgen IP core will be used to obtain the
@@ -154,7 +154,7 @@ AD7984 Timing diagram
 
 The operation mode that will be implemented using the SPI Engine in offload mode
 is the :math:`\overline{CS}` Mode, 3-Wire with Busy Indicator Serial Interface Timing (SDI High),
-as shown in :datasheet:`AD7984:[{"num"%3A51%2C"gen"%3A0}%2C{"name"%3A"XYZ"}%2C52%2C713%2C0]`,
+as shown in :adi:`AD7984 <media/en/technical-documentation/data-sheets/AD7984.pdf>`,
 page 18, figure 30.
 
 Key timing characteristics:
@@ -165,7 +165,7 @@ Key timing characteristics:
    750 ns T_CYC
    500 ns T_CONV
    250 ns T_ACQ
-   12 ns T_SCLK @ >3V VIO (cora pmod is 3V3)
+   12 ns T_SCLK @ >3V VIO (Cora PMOD is 3V3)
 
 Sample rate control
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

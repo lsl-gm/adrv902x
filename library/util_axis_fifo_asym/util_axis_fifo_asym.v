@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2021-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2021-2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -37,13 +37,14 @@
 module util_axis_fifo_asym #(
   parameter ASYNC_CLK = 1,
   parameter S_DATA_WIDTH = 64,
-  parameter S_ADDRESS_WIDTH = 5,
+  parameter ADDRESS_WIDTH = 5,
   parameter M_DATA_WIDTH = 128,
   parameter M_AXIS_REGISTERED = 1,
   parameter ALMOST_EMPTY_THRESHOLD = 4,
   parameter ALMOST_FULL_THRESHOLD = 4,
   parameter TLAST_EN = 0,
-  parameter TKEEP_EN = 0
+  parameter TKEEP_EN = 0,
+  parameter REDUCED_FIFO = 1
 ) (
   input m_axis_aclk,
   input m_axis_aresetn,
@@ -54,7 +55,7 @@ module util_axis_fifo_asym #(
   output m_axis_tlast,
   output m_axis_empty,
   output m_axis_almost_empty,
-  output [31:0] m_axis_level,
+  output [ADDRESS_WIDTH-1:0] m_axis_level,
 
   input s_axis_aclk,
   input s_axis_aresetn,
@@ -65,7 +66,7 @@ module util_axis_fifo_asym #(
   input s_axis_tlast,
   output s_axis_full,
   output s_axis_almost_full,
-  output [S_ADDRESS_WIDTH-1:0] s_axis_room
+  output [ADDRESS_WIDTH-1:0] s_axis_room
 );
 
   // define which interface has a wider bus
@@ -74,11 +75,11 @@ module util_axis_fifo_asym #(
   // bus width ratio
   localparam RATIO = (RATIO_TYPE) ? S_DATA_WIDTH/M_DATA_WIDTH : M_DATA_WIDTH/S_DATA_WIDTH;
 
-  // atomic parameters - NOTE: depth is always defined by the slave attributes
+  // atomic parameters
   localparam A_WIDTH = (RATIO_TYPE) ? M_DATA_WIDTH : S_DATA_WIDTH;
-  localparam A_ADDRESS = (RATIO_TYPE) ? S_ADDRESS_WIDTH : (S_ADDRESS_WIDTH-$clog2(RATIO));
-  localparam A_ALMOST_FULL_THRESHOLD = (RATIO_TYPE) ? ALMOST_FULL_THRESHOLD : (ALMOST_FULL_THRESHOLD/RATIO);
-  localparam A_ALMOST_EMPTY_THRESHOLD = (RATIO_TYPE) ? (ALMOST_EMPTY_THRESHOLD/RATIO) : ALMOST_EMPTY_THRESHOLD;
+  localparam A_ADDRESS = (REDUCED_FIFO) ? (ADDRESS_WIDTH-$clog2(RATIO)) : ADDRESS_WIDTH;
+  localparam A_ALMOST_FULL_THRESHOLD = (REDUCED_FIFO) ? ((ALMOST_FULL_THRESHOLD+RATIO-1)/RATIO) : ALMOST_FULL_THRESHOLD;
+  localparam A_ALMOST_EMPTY_THRESHOLD = (REDUCED_FIFO) ? ((ALMOST_EMPTY_THRESHOLD+RATIO-1)/RATIO) : ALMOST_EMPTY_THRESHOLD;
 
   // slave and master sequencers
   reg [$clog2(RATIO)-1:0] s_axis_counter;
@@ -102,10 +103,12 @@ module util_axis_fifo_asym #(
   wire [RATIO-1:0] s_axis_almost_full_int_s;
   wire [RATIO*A_ADDRESS-1:0] s_axis_room_int_s;
 
+  wire m_axis_valid_int;
+
   // instantiate the FIFOs
   genvar i;
   generate
-    for (i=0; i<RATIO; i=i+1) begin
+    for (i=0; i<RATIO; i=i+1) begin: gen_fifo_instances
       util_axis_fifo #(
         .DATA_WIDTH (A_WIDTH),
         .ADDRESS_WIDTH (A_ADDRESS),
@@ -114,7 +117,8 @@ module util_axis_fifo_asym #(
         .ALMOST_EMPTY_THRESHOLD (A_ALMOST_EMPTY_THRESHOLD),
         .ALMOST_FULL_THRESHOLD (A_ALMOST_FULL_THRESHOLD),
         .TKEEP_EN (TKEEP_EN),
-        .TLAST_EN (TLAST_EN)
+        .TLAST_EN (TLAST_EN),
+        .REMOVE_NULL_BEAT_EN(0)
       ) i_fifo (
         .m_axis_aclk    (m_axis_aclk),
         .m_axis_aresetn (m_axis_aresetn),
@@ -144,9 +148,19 @@ module util_axis_fifo_asym #(
 
     if (RATIO_TYPE) begin : big_slave
 
-      for (i=0; i<RATIO; i=i+1) begin
+      for (i=0; i<RATIO; i=i+1) begin: gen_tlast_big_slave
         assign s_axis_valid_int_s[i] = s_axis_valid & s_axis_ready;
-        assign s_axis_tlast_int_s[i] = s_axis_tlast;
+
+        if (TKEEP_EN) begin
+
+          assign s_axis_tlast_int_s[i] = (i==RATIO-1) ? ((|s_axis_tkeep[M_DATA_WIDTH/8*i+:M_DATA_WIDTH/8]) ? s_axis_tlast : 1'b0) :
+            (((|s_axis_tkeep[M_DATA_WIDTH/8*i+:M_DATA_WIDTH/8]) & (~(|s_axis_tkeep[M_DATA_WIDTH/8*(i+1)+:M_DATA_WIDTH/8]))) ? s_axis_tlast : 1'b0);
+
+        end else begin
+
+          assign s_axis_tlast_int_s[i] = (i==RATIO-1) ? s_axis_tlast : 1'b0;
+
+        end
       end
 
       assign s_axis_tkeep_int_s = s_axis_tkeep;
@@ -163,7 +177,7 @@ module util_axis_fifo_asym #(
 
       reg [RATIO-1:0] s_axis_valid_int_d = {RATIO{1'b0}};
 
-      for (i=0; i<RATIO; i=i+1) begin
+      for (i=0; i<RATIO; i=i+1) begin: gen_tlast_small_slave
         assign s_axis_data_int_s[A_WIDTH*i+:A_WIDTH] = s_axis_data;
         assign s_axis_tkeep_int_s[A_WIDTH/8*i+:A_WIDTH/8] = (s_axis_counter == i) ? s_axis_tkeep : {A_WIDTH/8{1'b0}};
         assign s_axis_tlast_int_s[i] = (s_axis_counter == i) ? s_axis_tlast : 1'b0;
@@ -176,13 +190,15 @@ module util_axis_fifo_asym #(
           2'b00 : s_axis_valid_int_d = {RATIO{1'b0}};
           2'b01 : s_axis_valid_int_d = {RATIO{1'b0}};
           2'b10 : s_axis_valid_int_d = {{RATIO-1{1'b0}}, 1'b1} << s_axis_counter;
-          2'b11 : s_axis_valid_int_d = {RATIO{1'b1}} << s_axis_counter;
+          2'b11 : s_axis_valid_int_d = {RATIO{&(s_axis_ready_int_s)}} << s_axis_counter;
         endcase
       end
       assign s_axis_valid_int_s = s_axis_valid_int_d;
 
-      // READY/FULL/ALMOST_FULL is driven by the current atomic instance
-      assign s_axis_ready = s_axis_ready_int_s >> s_axis_counter;
+      // disable read enable if the TLAST arrives before address handshake occurs
+      assign s_axis_ready = (s_axis_tlast) ? &(s_axis_ready_int_s) : s_axis_ready_int_s >> s_axis_counter;
+
+      // FULL/ALMOST_FULL is driven by the current atomic instance
       assign s_axis_almost_full = s_axis_almost_full_int_s >> s_axis_counter;
 
       // the FIFO has the same room as the last atomic instance
@@ -199,7 +215,7 @@ module util_axis_fifo_asym #(
   generate
     if (RATIO_TYPE) begin : small_master
 
-      for (i=0; i<RATIO; i=i+1) begin
+      for (i=0; i<RATIO; i=i+1) begin: gen_ready_small_master
         assign m_axis_ready_int_s[i] = (m_axis_counter == i) ? m_axis_ready : 1'b0;
       end
 
@@ -207,7 +223,9 @@ module util_axis_fifo_asym #(
       assign m_axis_tkeep = m_axis_tkeep_int_s >> (m_axis_counter*A_WIDTH/8) ;
 
       // VALID/EMPTY/ALMOST_EMPTY is driven by the current atomic instance
-      assign m_axis_valid = m_axis_valid_int_s >> m_axis_counter;
+      assign m_axis_valid_int = m_axis_valid_int_s >> m_axis_counter;
+      assign m_axis_valid = m_axis_valid_int & (|m_axis_tkeep);
+      assign m_axis_tlast = m_axis_tlast_int_s >> m_axis_counter;
 
       // the FIFO has the same level as the last atomic instance
       // (NOTE: this is not the real level value, rather the value will be updated
@@ -218,13 +236,13 @@ module util_axis_fifo_asym #(
 
     end else begin : big_master
 
-      for (i=0; i<RATIO; i=i+1) begin
-        assign m_axis_ready_int_s[i] = m_axis_ready;
+      for (i=0; i<RATIO; i=i+1) begin: gen_ready_big_master
+        assign m_axis_ready_int_s[i] = m_axis_ready & (&m_axis_valid_int_s);
       end
 
-      for (i=0; i<RATIO; i=i+1) begin
-        assign m_axis_tkeep[i*A_WIDTH/8+:A_WIDTH/8] = (m_axis_tlast_int_s[i:0] == 0) ||
-                                                      (m_axis_tlast_int_s[i]) ?
+      for (i=0; i<RATIO; i=i+1) begin: gen_tkeep_big_master
+        assign m_axis_tkeep[i*A_WIDTH/8+:A_WIDTH/8] = ((m_axis_tlast_int_s[i:0] == 0) ||
+                                                      (m_axis_tlast_int_s[i])) ?
                                                     m_axis_tkeep_int_s[i*A_WIDTH/8+:A_WIDTH/8] :
                                                     {(A_WIDTH/8){1'b0}};
       end
@@ -232,7 +250,13 @@ module util_axis_fifo_asym #(
       assign m_axis_data = m_axis_data_int_s;
       // if every instance has a valid data, the interface has valid data,
       // otherwise valid is asserted only if TLAST is asserted
-      assign m_axis_valid = (|m_axis_tlast_int_s) ? |m_axis_valid_int_s : &m_axis_valid_int_s;
+      // assign m_axis_valid_int = (|(m_axis_tlast_int_s & m_axis_valid_int_s)) ? |m_axis_valid_int_s : &m_axis_valid_int_s;
+      if (TLAST_EN) begin
+        assign m_axis_valid_int = (|(m_axis_tlast_int_s & m_axis_valid_int_s)) ? |m_axis_valid_int_s : &m_axis_valid_int_s;
+      end else begin
+        assign m_axis_valid_int = &m_axis_valid_int_s;
+      end
+      assign m_axis_valid = m_axis_valid_int;
       // if one of the atomic instance is empty, m_axis_empty should be asserted
       assign m_axis_empty = |m_axis_empty_int_s;
       assign m_axis_almost_empty = |m_axis_almost_empty_int_s;
@@ -240,18 +264,11 @@ module util_axis_fifo_asym #(
       // the FIFO has the same room as the atomic FIFO
       assign m_axis_level = m_axis_level_int_s[A_ADDRESS-1:0];
 
+      assign m_axis_tlast = (m_axis_valid) ? |m_axis_tlast_int_s : 1'b0;
+
     end
 
-    assign m_axis_tlast = (m_axis_valid) ? |m_axis_tlast_int_s : 1'b0;
-
   endgenerate
-
-  // slave handshake counter
-
-  reg s_axis_tlast_d = 0;
-  always @(posedge s_axis_aclk) begin
-    s_axis_tlast_d <= s_axis_tlast;
-  end
 
   generate
     if (RATIO == 1) begin
@@ -272,11 +289,15 @@ module util_axis_fifo_asym #(
       end else begin
         // in case of a small slave, after an active TLAST reset the counter
         always @(posedge s_axis_aclk) begin
-          if (!s_axis_aresetn || s_axis_tlast_d) begin
+          if (!s_axis_aresetn) begin
             s_axis_counter <= 0;
           end else begin
             if (s_axis_ready && s_axis_valid) begin
-              s_axis_counter <= s_axis_counter + 1'b1;
+              if (s_axis_tlast) begin
+                s_axis_counter <= 0;
+              end else begin
+                s_axis_counter <= s_axis_counter + 1'b1;
+              end
             end
           end
         end
@@ -296,7 +317,7 @@ module util_axis_fifo_asym #(
         if (!m_axis_aresetn) begin
           m_axis_counter <= 0;
         end else begin
-          if (m_axis_ready && m_axis_valid) begin
+          if (m_axis_ready && m_axis_valid_int) begin
             m_axis_counter <= m_axis_counter + 1'b1;
           end
         end

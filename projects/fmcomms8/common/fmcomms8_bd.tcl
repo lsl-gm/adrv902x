@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2019-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2019-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -8,8 +8,6 @@ create_bd_port -dir I ref_clk_d
 
 create_bd_port -dir I core_clk_c
 create_bd_port -dir I core_clk_d
-
-create_bd_port -dir I dac_fifo_bypass
 
 #
 # Parameter description:
@@ -25,6 +23,7 @@ set MAX_RX_OS_NUM_OF_LANES 4
 
 set DATAPATH_WIDTH 4
 source $ad_hdl_dir/library/jesd204/scripts/jesd204.tcl
+source $ad_hdl_dir/projects/common/xilinx/data_offload_bd.tcl
 
 # TX parameters
 set TX_NUM_OF_LANES $ad_project_params(TX_JESD_L)      ; # L
@@ -62,10 +61,18 @@ set RX_OS_TPL_WIDTH [ expr { [info exists ad_project_params(RX_OS_TPL_WIDTH)] \
 set RX_OS_DATAPATH_WIDTH [adi_jesd204_calc_tpl_width $DATAPATH_WIDTH $RX_OS_NUM_OF_LANES $RX_OS_NUM_OF_CONVERTERS $RX_OS_SAMPLES_PER_FRAME $RX_OS_SAMPLE_WIDTH $RX_OS_TPL_WIDTH]
 set RX_OS_SAMPLES_PER_CHANNEL [expr $RX_OS_NUM_OF_LANES * 8 * $RX_OS_DATAPATH_WIDTH / ($RX_OS_NUM_OF_CONVERTERS * $RX_OS_SAMPLE_WIDTH)]
 
-set dac_fifo_name axi_adrv9009_fmc_tx_fifo
+set dac_offload_name adrv9009_fmc_data_offload
 set dac_data_width [expr $TX_SAMPLE_WIDTH * $TX_NUM_OF_CONVERTERS * $TX_SAMPLES_PER_CHANNEL]
 
-ad_dacfifo_create $dac_fifo_name $dac_data_width $dac_data_width $dac_fifo_address_width
+ad_data_offload_create $dac_offload_name \
+                       1 \
+                       $dac_offload_type \
+                       $dac_offload_size \
+                       $dac_data_width \
+                       $dac_data_width
+
+ad_ip_parameter $dac_offload_name/i_data_offload CONFIG.SYNC_EXT_ADD_INTERNAL_CDC 0
+ad_connect $dac_offload_name/sync_ext GND
 
 ad_ip_instance axi_adxcvr axi_adrv9009_fmc_tx_xcvr
 ad_ip_parameter axi_adrv9009_fmc_tx_xcvr CONFIG.NUM_OF_LANES $MAX_TX_NUM_OF_LANES
@@ -97,6 +104,7 @@ ad_ip_parameter axi_adrv9009_fmc_tx_dma CONFIG.DMA_DATA_WIDTH_DEST $dac_data_wid
 ad_ip_parameter axi_adrv9009_fmc_tx_dma CONFIG.DMA_DATA_WIDTH_SRC 128
 ad_ip_parameter axi_adrv9009_fmc_tx_dma CONFIG.FIFO_SIZE 32
 ad_ip_parameter axi_adrv9009_fmc_tx_dma CONFIG.MAX_BYTES_PER_BURST 512
+ad_ip_parameter axi_adrv9009_fmc_tx_dma CONFIG.CACHE_COHERENT $CACHE_COHERENCY
 
 ad_ip_instance axi_adxcvr axi_adrv9009_fmc_rx_xcvr
 ad_ip_parameter axi_adrv9009_fmc_rx_xcvr CONFIG.NUM_OF_LANES $MAX_RX_NUM_OF_LANES
@@ -122,12 +130,13 @@ ad_ip_instance axi_dmac axi_adrv9009_fmc_rx_dma
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.DMA_TYPE_SRC 2
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.DMA_TYPE_DEST 0
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.CYCLIC 0
-ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.SYNC_TRANSFER_START 0
+ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.AXI_SLICE_SRC 1
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.AXI_SLICE_DEST 1
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.DMA_DATA_WIDTH_SRC $adc_dma_data_width
 ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.DMA_DATA_WIDTH_DEST 128
+ad_ip_parameter axi_adrv9009_fmc_rx_dma CONFIG.CACHE_COHERENT $CACHE_COHERENCY
 
 ad_ip_instance axi_adxcvr axi_adrv9009_fmc_obs_xcvr
 ad_ip_parameter axi_adrv9009_fmc_obs_xcvr CONFIG.NUM_OF_LANES $MAX_RX_OS_NUM_OF_LANES
@@ -157,6 +166,7 @@ ad_ip_parameter axi_adrv9009_fmc_obs_dma CONFIG.AXI_SLICE_DEST 1
 ad_ip_parameter axi_adrv9009_fmc_obs_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_adrv9009_fmc_obs_dma CONFIG.DMA_DATA_WIDTH_SRC [expr 32*$RX_OS_NUM_OF_LANES]
 ad_ip_parameter axi_adrv9009_fmc_obs_dma CONFIG.DMA_DATA_WIDTH_DEST 128
+ad_ip_parameter axi_adrv9009_fmc_obs_dma CONFIG.CACHE_COHERENT $CACHE_COHERENCY
 
 ad_ip_instance util_adxcvr util_adrv9009_fmc_xcvr
 ad_ip_parameter util_adrv9009_fmc_xcvr CONFIG.RX_NUM_OF_LANES [expr $MAX_RX_NUM_OF_LANES+$MAX_RX_OS_NUM_OF_LANES]
@@ -297,23 +307,15 @@ for {set i 0} {$i < $TX_NUM_OF_CONVERTERS} {incr i} {
 
 ad_connect tx_adrv9009_fmc_tpl_core/dac_dunf util_fmc_tx_upack/fifo_rd_underflow
 
-ad_connect  core_clk_c axi_adrv9009_fmc_tx_fifo/dac_clk
-ad_connect  core_clk_c_rstgen/peripheral_reset axi_adrv9009_fmc_tx_fifo/dac_rst
+ad_connect  core_clk_c $dac_offload_name/m_axis_aclk
+ad_connect  core_clk_c_rstgen/peripheral_aresetn $dac_offload_name/m_axis_aresetn
+ad_connect  util_fmc_tx_upack/s_axis $dac_offload_name/m_axis
 
-ad_connect  util_fmc_tx_upack/s_axis_valid VCC
-ad_connect  util_fmc_tx_upack/s_axis_ready axi_adrv9009_fmc_tx_fifo/dac_valid
-ad_connect  util_fmc_tx_upack/s_axis_data axi_adrv9009_fmc_tx_fifo/dac_data
-
-ad_connect  core_clk_c axi_adrv9009_fmc_tx_fifo/dma_clk
-ad_connect  core_clk_c_rstgen/peripheral_reset axi_adrv9009_fmc_tx_fifo/dma_rst
+ad_connect  core_clk_c $dac_offload_name/s_axis_aclk
+ad_connect  core_clk_c_rstgen/peripheral_aresetn $dac_offload_name/s_axis_aresetn
 ad_connect  core_clk_c axi_adrv9009_fmc_tx_dma/m_axis_aclk
-ad_connect  axi_adrv9009_fmc_tx_fifo/dma_xfer_req axi_adrv9009_fmc_tx_dma/m_axis_xfer_req
-ad_connect  axi_adrv9009_fmc_tx_fifo/dma_ready axi_adrv9009_fmc_tx_dma/m_axis_ready
-ad_connect  axi_adrv9009_fmc_tx_fifo/dma_data axi_adrv9009_fmc_tx_dma/m_axis_data
-ad_connect  axi_adrv9009_fmc_tx_fifo/dma_valid axi_adrv9009_fmc_tx_dma/m_axis_valid
-ad_connect  axi_adrv9009_fmc_tx_fifo/dma_xfer_last axi_adrv9009_fmc_tx_dma/m_axis_last
-
-ad_connect  axi_adrv9009_fmc_tx_fifo/bypass dac_fifo_bypass
+ad_connect  $dac_offload_name/s_axis axi_adrv9009_fmc_tx_dma/m_axis
+ad_connect  $dac_offload_name/init_req axi_adrv9009_fmc_tx_dma/m_axis_xfer_req
 
 ad_connect  core_clk_d rx_adrv9009_fmc_tpl_core/link_clk
 ad_connect  axi_adrv9009_fmc_rx_jesd/rx_sof rx_adrv9009_fmc_tpl_core/link_sof
@@ -329,6 +331,7 @@ for {set i 0} {$i < $RX_NUM_OF_CONVERTERS} {incr i} {
 }
 ad_connect rx_adrv9009_fmc_tpl_core/adc_dovf util_fmc_rx_cpack/fifo_wr_overflow
 ad_connect axi_adrv9009_fmc_rx_dma/fifo_wr util_fmc_rx_cpack/packed_fifo_wr
+ad_connect axi_adrv9009_fmc_rx_dma/sync util_fmc_rx_cpack/packed_sync
 ad_connect core_clk_d axi_adrv9009_fmc_rx_dma/fifo_wr_clk
 
 # connections (adc-os)
@@ -348,6 +351,7 @@ for {set i 0} {$i < $RX_OS_NUM_OF_CONVERTERS} {incr i} {
 }
 ad_connect  obs_adrv9009_fmc_tpl_core/adc_dovf util_fmc_obs_cpack/fifo_wr_overflow
 ad_connect  util_fmc_obs_cpack/packed_fifo_wr axi_adrv9009_fmc_obs_dma/fifo_wr
+ad_connect  util_fmc_obs_cpack/packed_sync axi_adrv9009_fmc_obs_dma/sync
 
 
 ad_cpu_interconnect 0x45A00000 rx_adrv9009_fmc_tpl_core
@@ -360,6 +364,7 @@ ad_cpu_interconnect 0x45A50000 axi_adrv9009_fmc_rx_jesd
 ad_cpu_interconnect 0x45A60000 axi_adrv9009_fmc_obs_xcvr
 ad_cpu_interconnect 0x45A70000 axi_adrv9009_fmc_obs_jesd
 ad_cpu_interconnect 0x7d400000 axi_adrv9009_fmc_tx_dma
+ad_cpu_interconnect 0x7d410000 $dac_offload_name
 ad_cpu_interconnect 0x7d420000 axi_adrv9009_fmc_rx_dma
 ad_cpu_interconnect 0x7d440000 axi_adrv9009_fmc_obs_dma
 
@@ -369,12 +374,21 @@ ad_mem_hp0_interconnect $sys_cpu_clk axi_adrv9009_fmc_obs_xcvr/m_axi
 
 # interconnect (mem/dac)
 
-ad_mem_hp1_interconnect $sys_dma_clk sys_ps7/S_AXI_HP1
-ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9009_fmc_tx_dma/m_src_axi
-ad_mem_hp2_interconnect $sys_dma_clk sys_ps7/S_AXI_HP2
-ad_mem_hp2_interconnect $sys_dma_clk axi_adrv9009_fmc_rx_dma/m_dest_axi
-ad_mem_hp3_interconnect $sys_dma_clk sys_ps7/S_AXI_HP3
-ad_mem_hp3_interconnect $sys_dma_clk axi_adrv9009_fmc_obs_dma/m_dest_axi
+if {$CACHE_COHERENCY} {
+  ad_mem_hpc1_interconnect $sys_dma_clk sys_ps8/S_AXI_HPC1
+  ad_mem_hpc1_interconnect $sys_dma_clk axi_adrv9009_fmc_tx_dma/m_src_axi
+  ad_mem_hpc0_interconnect $sys_dma_clk sys_ps8/S_AXI_HPC0
+  ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9009_fmc_rx_dma/m_dest_axi
+  ad_mem_hpc0_interconnect $sys_dma_clk axi_adrv9009_fmc_obs_dma/m_dest_axi
+} else {
+  ad_mem_hp1_interconnect $sys_dma_clk sys_ps7/S_AXI_HP1
+  ad_mem_hp1_interconnect $sys_dma_clk axi_adrv9009_fmc_tx_dma/m_src_axi
+  ad_mem_hp2_interconnect $sys_dma_clk sys_ps7/S_AXI_HP2
+  ad_mem_hp2_interconnect $sys_dma_clk axi_adrv9009_fmc_rx_dma/m_dest_axi
+  ad_mem_hp3_interconnect $sys_dma_clk sys_ps7/S_AXI_HP3
+  ad_mem_hp3_interconnect $sys_dma_clk axi_adrv9009_fmc_obs_dma/m_dest_axi
+}
+
 ad_connect $sys_dma_resetn axi_adrv9009_fmc_rx_dma/m_dest_axi_aresetn
 ad_connect $sys_dma_resetn axi_adrv9009_fmc_tx_dma/m_src_axi_aresetn
 ad_connect $sys_dma_resetn axi_adrv9009_fmc_obs_dma/m_dest_axi_aresetn

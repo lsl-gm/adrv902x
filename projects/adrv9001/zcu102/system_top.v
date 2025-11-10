@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2020-2023, 2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -124,10 +124,7 @@ module system_top (
   input                   vadj_err,
   output                  platform_status,
 
-  inout                   tdd_sync,
-
-  //debug hdr
-  output       [9:0]      proto_hdr
+  inout                   tdd_sync
 );
 
   // internal registers
@@ -296,14 +293,6 @@ module system_top (
     .spi1_sclk (),
     .spi1_csn (),
     .spi1_miso (1'b0),
-    .spi1_mosi (),
-
-    // debug
-    .adc1_div_clk (proto_hdr[0]),
-    .adc2_div_clk (proto_hdr[1]),
-    .dac1_div_clk (proto_hdr[2]),
-    .dac2_div_clk (proto_hdr[3]));
-
-  assign proto_hdr[9:4] = {'b0};
+    .spi1_mosi ());
 
 endmodule

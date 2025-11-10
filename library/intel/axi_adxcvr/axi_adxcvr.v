@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -47,14 +47,20 @@ module axi_adxcvr #(
   parameter   [15:0]  FPGA_VOLTAGE = 0,
   parameter   integer XCVR_TYPE = 0,
   parameter   integer TX_OR_RX_N = 0,
-  parameter   integer NUM_OF_LANES = 4
+  parameter   integer NUM_OF_LANES = 4,
+  parameter           LOCKED_W = (FPGA_TECHNOLOGY == 105) ?  NUM_OF_LANES : 1,
+  parameter           READY_W = (FPGA_TECHNOLOGY != 105) ?  NUM_OF_LANES : 1
 ) (
 
   // xcvr, lane-pll and ref-pll are shared
 
   output                        up_rst,
-  input                         up_pll_locked,
-  input   [(NUM_OF_LANES-1):0]  up_ready,
+  input    [LOCKED_W-1 : 0]     up_pll_locked,
+  input    [NUM_OF_LANES-1:0]   up_rx_lockedtodata,
+  input    [READY_W-1  : 0]     up_ready,
+  input    [READY_W-1  : 0]     up_reset_ack,
+
+  output                        xcvr_reset,
 
   input                         s_axi_aclk,
   input                         s_axi_aresetn,
@@ -97,6 +103,8 @@ module axi_adxcvr #(
   assign up_rstn = s_axi_aresetn;
   assign up_clk = s_axi_aclk;
 
+  assign xcvr_reset = up_rst;
+
   // instantiations
 
   axi_adxcvr_up #(
@@ -108,11 +116,14 @@ module axi_adxcvr #(
     .DEV_PACKAGE (DEV_PACKAGE),
     .FPGA_VOLTAGE (FPGA_VOLTAGE),
     .TX_OR_RX_N (TX_OR_RX_N),
-    .NUM_OF_LANES (NUM_OF_LANES)
+    .NUM_OF_LANES (NUM_OF_LANES),
+    .READY_W (READY_W)
   ) i_up (
     .up_rst (up_rst),
-    .up_pll_locked (up_pll_locked),
+    .up_pll_locked (&up_pll_locked),
+    .up_rx_lockedtodata (&up_rx_lockedtodata),
     .up_ready (up_ready),
+    .up_reset_ack (up_reset_ack),
     .up_rstn (up_rstn),
     .up_clk (up_clk),
     .up_wreq (up_wreq),

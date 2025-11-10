@@ -1,12 +1,13 @@
-High-Speed DMA Controller
+.. _axi_dmac:
+
+AXI DMAC
 ================================================================================
 
-.. symbolator:: ../../../library/axi_dmac/axi_dmac.v
-   :caption: axi_dmac
+.. hdl-component-diagram::
 
-The AXI DMAC is a high-speed, high-throughput, general purpose DMA controller
-intended to be used to transfer data between system memory and other peripherals
-like high-speed converters.
+The :git-hdl:`AXI DMA Controller <library/axi_dmac>` IP core is a high-speed,
+high-throughput, general purpose DMA controller intended to be used to transfer
+data between system memory and other peripherals like high-speed converters.
 
 Features
 --------------------------------------------------------------------------------
@@ -23,6 +24,9 @@ Features
 
 - Cyclic transfers
 - 2D transfers
+- Scatter-Gather transfers
+- Framelock
+- AutoRun
 
 Utilization
 --------------------------------------------------------------------------------
@@ -54,7 +58,7 @@ Files
 
    * - Name
      - Description
-   * - :git-hdl:`master:library/axi_dmac/axi_dmac.v`
+   * - :git-hdl:`library/axi_dmac/axi_dmac.v`
      - Verilog source for the peripheral.
 
 Block Diagram
@@ -68,7 +72,6 @@ Configuration Parameters
 --------------------------------------------------------------------------------
 
 .. hdl-parameters::
-   :path: library/axi_dmac
 
    * - ID
      - Instance identification number.
@@ -76,21 +79,33 @@ Configuration Parameters
      - Data path width of the source interface in bits.
    * - DMA_DATA_WIDTH_DEST
      - Data path width of the destination interface in bits.
+   * - DMA_DATA_WIDTH_SG
+     - Data path width of the scatter-gather interface in bits.
    * - DMA_LENGTH_WIDTH
      - Width of transfer length control register in bits.
        Limits length of the transfers to 2*\*\ ``DMA_LENGTH_WIDTH``.
    * - DMA_2D_TRANSFER
      - Enable support for 2D transfers.
+   * - DMA_SG_TRANSFER
+     - Enable support for scatter-gather transfers.
    * - ASYNC_CLK_REQ_SRC
      - Whether the request and source clock domains are asynchronous.
    * - ASYNC_CLK_SRC_DEST
      - Whether the source and destination clock domains are asynchronous.
    * - ASYNC_CLK_DEST_REQ
      - Whether the destination and request clock domains are asynchronous.
+   * - ASYNC_CLK_REQ_SG
+     - Whether the request and scatter-gather clock domains are asynchronous.
+   * - ASYNC_CLK_SRC_SG
+     - Whether the source and scatter-gather clock domains are asynchronous.
+   * - ASYNC_CLK_DEST_SG
+     - Whether the destination and scatter-gather clock domains are asynchronous.
    * - AXI_SLICE_DEST
-     - Whether to insert a extra register slice on the source data path.
+     - Whether to insert an extra register slice on the source data path.
    * - AXI_SLICE_SRC
-     - Whether to insert a extra register slice on the destination data path.
+     - Whether to insert an extra register slice on the destination data path.
+   * - AXIS_TUSER_SYNC
+     - Transfer Start Synchronization on TUSER
    * - SYNC_TRANSFER_START
      - Enable the transfer start synchronization feature.
    * - CYCLIC
@@ -98,7 +113,9 @@ Configuration Parameters
    * - DMA_AXI_PROTOCOL_SRC
      - AXI protocol version of the source interface (0 = AXI4, 1 = AXI3).
    * - DMA_AXI_PROTOCOL_DEST
-     - AXI protocol version of the destionation interface (0 = AXI4, 1 = AXI3).
+     - AXI protocol version of the destination interface (0 = AXI4, 1 = AXI3).
+   * - DMA_AXI_PROTOCOL_SG
+     - AXI protocol version of the scatter-gather interface (0 = AXI4, 1 = AXI3).
    * - DMA_TYPE_SRC
      - Interface type for the source interface
        (0 = AXI-MM, 1 = AXI-Streaming, 2 = ADI-FIFO).
@@ -147,7 +164,7 @@ Interface
      - Reset for the ``m_src_axi`` interface.
        Only present when ``DMA_TYPE_SRC`` parameter is set to AXI-MM (0).
    * - m_src_axi
-     -
+     - Only present when ``DMA_TYPE_SRC`` parameter is set to AXI-MM (0).
    * - m_dest_axi_aclk
      - The ``m_src_axi`` interface is synchronous to this clock.
        Only present when ``DMA_TYPE_DEST`` parameter is set to AXI-MM (0).
@@ -155,7 +172,15 @@ Interface
      - Reset for the ``m_dest_axi`` interface.
        Only present when ``DMA_TYPE_DEST`` parameter is set to AXI-MM (0).
    * - m_dest_axi
-     -
+     - Only present when ``DMA_TYPE_DEST`` parameter is set to AXI-MM (0).
+   * - m_sg_axi_aclk
+     - The ``m_sg_axi`` interface is synchronous to this clock.
+       Only present when ``DMA_SG_TRANSFER`` parameter is set.
+   * - m_sg_axi_aresetn
+     - Reset for the ``m_sg_axi`` interface.
+       Only present when ``DMA_SG_TRANSFER`` parameter is set.
+   * - m_sg_axi
+     - Only present when ``DMA_SG_TRANSFER`` parameter is set.
    * - s_axis_aclk
      - The ``s_axis`` interface is synchronous to this clock.
        Only present when ``DMA_TYPE_SRC`` parameter is set to AXI-Streaming
@@ -235,7 +260,7 @@ De-assertion of the reset signal should by synchronous to ``s_axi_aclk``.
 Data Interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-AXI-Streaming slave
+AXI-Streaming subordinate
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 The interface back-pressures through the ``s_axis_ready`` signal. If the core is
@@ -458,6 +483,19 @@ from the internal buffer will be cleared/lost. In case of AXIS the DMAC will
 wait for data to be accepted if valid is high since it can't just de-assert
 valid without breaking the interface semantics
 
+AutoRun mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When the ``AUTORUN`` parameter is set the DMAC can initiate transfers without
+software intervention. Once the core comes out of reset, the core will operate
+on a transfer defined through the ``AUTORUN_*`` synthesis parameters.
+This is useful mostly in ``CYCLIC`` mode.
+In non cyclic mode, once the initial
+transfer is done the core will go to idle state and will wait for software
+interaction if that exists.
+In this mode the s_axi AXI configuration interface
+is optional.
+
 .. _axi_dmac interrupts:
 
 Interrupts
@@ -537,22 +575,211 @@ cyclic transfer the DMA channel must be disabled.
 Any additional transfers that are submitted after the submission of a cyclic
 transfer (and before stopping the cyclic transfer) will never be executed.
 
+Scatter-Gather Transfers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the ``DMA_SG_TRANSFER`` HDL synthesis configuration parameter is set the DMA
+controller has support for scatter-gather transfers.
+
+The scatter-gather optional feature allows the DMA to access noncontiguous areas
+of memory within a single transfer.
+
+The DMA can read from or write to different memory addresses in one transaction
+by using a list of vectors called *descriptors*. Each descriptor provides the
+starting address and the length of the current memory block to be accessed, as
+well as the next address of the following descriptor to be processed. By chaining
+these descriptors, the DMA can *gather* the data into a contiguous transfer from
+the *scattered* memory data from multiple addresses.
+
+The scatter-gather has its own dedicated AXI3/4 memory mapped interface
+``m_sg_axi`` through which it receives the descriptor data.
+
+Descriptor Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The scatter-gather interface fetches the descriptor information from memory in
+the following order:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Size
+     - Name
+     - Description
+   * - 32-bit
+     - flags
+     - | This field includes 2 control bits:
+
+       * bit0: if set, the transfer will complete after this last descriptor is
+         processed and the DMA core will go back to idle state; if cleared, the
+         next DMA descriptor pointed to by ``next_sg_addr`` will be loaded.
+       * bit1: if set, an end-of-transfer interrupt will be raised after the
+         memory segment pointed to by this descriptor has been transferred.
+   * - 32-bit
+     - id
+     - This field corresponds to an identifier of the descriptor.
+   * - 64-bit
+     - dest_addr
+     - This field contains the destination address of the transfer.
+   * - 64-bit
+     - src_addr
+     - This field contains the source address of the transfer.
+   * - 64-bit
+     - next_sg_addr
+     - This field contains the address of the next descriptor.
+   * - 32-bit
+     - y_len
+     - This field contains the number of rows to transfer, minus one.
+   * - 32-bit
+     - x_len
+     - This field contains the number of bytes to transfer, minus one.
+   * - 32-bit
+     - src_stride
+     - This field contains the number of bytes between the start of one row and
+       the next row for the source address.
+   * - 32-bit
+     - dst_stride
+     - This field contains the number of bytes between the start of one row and
+       the next row for the destination address.
+
+The ``y_len``, ``src_stride`` and ``dst_stride`` fields are only useful for 2D
+transfers and should be set to 0 if 2D transfers are not required.
+
+Transfer Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The scatter-gather transfers are enabled through the ``HWDESC`` bit from the
+``CONTROL`` (``0x400``) register. Once this bit is set, cyclic transfers are
+disabled, since the same cyclic behavior can be replicated using a descriptor
+chain loop.
+
+To start a scatter-gather transfer, the address of the first DMA descriptor must
+be written to the register pair [``SG_ADDRESS_HIGH`` (``0x4BC``), ``SG_ADDRESS``
+(``0x47C``)].
+
+To end a scatter-gather transfer, the last descriptor of the transfer must have
+the ``flags[0]`` bit set.
+
+The scatter-gather transfer is queued in a similar way to the simple transfers,
+through the ``TRANSFER_SUBMIT``. Software should always poll this bit to be 0
+before setting it, otherwise the scatter-gather transfer will not be queued.
+
+The scatter-gather transfers support the generation of the same two types of
+interrupt events as the simple transfers. However, the scatter-gather transfers
+have the distinct advantage of generating fewer interrupts by treating the
+chained descriptor transfers as a single transfer, thus improving the performance
+of the application.
+
+External Synchronization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This feature allows external components to throttle the consumption of
+descriptors queued by the software. A transfer will start only after the
+assertion of the external sync signal for at least one clock cycle.
+
+The sync signal can be either in source or destination clock domain or both.
+This feature does not ensure fixed latency from the assertion of external sync
+signal and the availability of the data at the destination interface.
+
+Framelock Synchronization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This feature adds support for multiple 2D frame buffers, which are used in a
+cyclic way. On the same set of buffers, a second DMAC core can operate.
+The "Framelock" mechanism ensures no buffer is accessed by two DMACs at the same
+time.
+
+The core can operate in two roles:
+
+* Writer mode - available in s2mm configuration.
+* Reader mode - available in mm2s configuration.
+
+And two modes:
+
+* Frame conversion (dynamic mode):
+
+  - Writer mode - the writer will always skip the current in-use reader's buffer.
+  - Reader mode - the reader will stay behind the writer's buffer by either
+    repeating or skipping buffers according to the speed relationship of the two cores.
+
+* Output delay (simple mode):
+
+  - Writer mode - the writer will cycle through the buffers regardless of the reader.
+  - Reader mode - the reader will always read a buffer at a predefined distance
+    from the one currently accessed by the writer.
+
+Also, in simple mode:
+
+* If 'wait for writer' is enabled the reader will output a frame only after
+  the master wrote one to the memory
+* If the 'wait for writer' is not enabled the slave will start reading a
+  buffer whenever it completed a previous buffer and receives an external sync
+  signal if the external synchronization support is enabled.
+
+.. caution::
+
+   In dynamic mode, the reader can still read a buffer being currently accessed
+   by the writer if the number of frames and distance are close.
+   Still, the distance is mainly used in output delay mode.
+
+The writer and reader DMAC cores must be connected through the dedicated
+"framelock" interface. They must be programmed with similar settings regarding
+the buffers size, start address and stride through the ``FRAMELOCK_CONFIG`` and
+``FRAMELOCK_STRIDE`` registers.
+
+Notice that the reader DMA will start to read the frames only after the writer
+finished to store in the DDR at least ``FRAMELOCK_CONFIG_DISTANCE+1`` frames.
+This means that while the FRAMELOCK_CONFIG_DISTANCE+1 frames are written into the
+memory, the reader DMA won’t output anything.
+
 Transfer Start Synchronization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the transfer start synchronization feature of the DMA controller is enabled
-the start of a transfer is synchronized to a flag in the data stream. This is
-primarily useful if the data stream does not have any back-pressure and one unit
+If the ``SYNC_TRANSFER_START`` HDL synthesis configuration parameter is set, the
+transfer start synchronization feature of the DMA controller is enabled. This
+means that the start of a transfer is synchronized to a flag in the data stream
+or a sync signal.
+
+This is useful if the data stream does not have any back-pressure and one unit
 of data spans multiple beats (e.g. packetized data). This ensures that the data
 is properly aligned to the beginning of the memory buffer.
 
-Data that is received before the synchronization flag is asserted will be
-ignored by the DMA controller.
+In addition, this feature allows the implementation of external timing
+synchronization for precisely timed buffers (For example, in combination with the
+:git-hdl:`Timing-Division Duplexing Controller <library/axi_tdd>`).
 
-For the FIFO write interface the ``fifo_wr_sync`` signal is the synchronization
-flag signal. For the AXI-Streaming interface the synchronization flag is carried
-in ``s_axis_user[0]``. In both cases the synchronization flag is qualified by
-the same control signal as the data.
+On the transmit side, both the FIFO and AXI-Streaming interfaces use the ``sync``
+signal as the synchronization signal.
+
+On the receive side, for the FIFO write interface the ``sync`` signal represents
+the synchronization flag signal. For the AXI-Streaming interface the synchronization
+signal is carried in either ``s_axis_user[0]`` or ``sync``, depending on the
+value of ``S_AXIS_USER_SYNC`` synthesis configuration parameter. In both cases
+the synchronization signal is qualified by the same control signal as the data.
+
+.. note::
+
+   The synchronization signal is assumed to be synchronous with the clock of the
+   interface which needs to be triggered by the transfer start synchronization.
+
+Cache Coherency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To enable Cache Coherency between the DMA and the CPU, the ``CACHE_COHERENT``
+HDL synthesis configuration parameter must be set.
+
+Two additional parameters are used to configure the Cache Coherent transactions:
+
+-  ``AXI_AXCACHE`` sets the ARCACHE/AWCACHE AXI cache support signals;
+-  ``AXI_AXPROT`` sets the ARPROT/AWPROT AXI access permission signals.
+
+They are initially set to the following default values through ``CACHE_COHERENT``:
+
+-  ``AXI_AXCACHE`` = ``CACHE_COHERENT`` ? ``4'b1111`` : ``4'b0011``
+-  ``AXI_AXPROT`` = ``CACHE_COHERENT`` ? ``3'b010``  : ``3'b000``
+
+If Cache Coherency is enabled, the ``AXI_AXCACHE`` and ``AXI_AXPROT`` values can
+be changed to support systems with different caching policies.
 
 Diagnostics interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -578,7 +805,7 @@ must hold:
 
 * ``MAX_BYTES_PER_BURST`` ≤ 4096;
 * ``MAX_BYTES_PER_BURST`` is power of 2;
-* ``​SRC/​DEST_ADDRESS`` ​mod ``​MAX_BYTES_PER_BURST`` ​== 0
+* ``SRC/DEST_ADDRESS`` mod ``MAX_BYTES_PER_BURST`` == 0
 * ``SRC/DEST_ADDRESS[11:0]`` + MIN(``X_LENGTH``\ +1,\ ``MAX_BYTES_PER_BURST``) ≤ 4096
 
 Address Alignment
@@ -614,6 +841,12 @@ bytes.
 
 Note that the address alignment requirement is not affected by this. The address
 still needs to be aligned to the width of the MM interface that it belongs to.
+
+Scatter-Gather Datapath Width
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The scatter-gather dedicated interface ``m_sg_axi`` currently supports only
+64-bit transfers. ``DMA_DATA_WIDTH_SG`` can only be set to 64.
 
 Software Support
 --------------------------------------------------------------------------------
@@ -657,6 +890,20 @@ Glossary
        consecutive beats.
    * - partial transfer
      - Represents a transfer which is shorter than the programmed length that
-       is based on the X_LENGTH and Y_LENGTH registers. This can occur on AXIS
-       source interfaces when TLAST asserts earlier than the programmed
+       is based on the ``X_LENGTH`` and ``Y_LENGTH`` registers. This can occur
+       on AXIS source interfaces when TLAST asserts earlier than the programmed
        length.
+
+Software Support
+--------------------------------------------------------------------------------
+
+* No-OS project at :git-no-OS:`drivers/axi_core/axi_dmac`
+* No-OS device driver at  :git-no-OS:`drivers/axi_core/axi_dmac/axi_dmac.c`
+* No-OS device driver documentation
+  :dokuwiki:`on wiki <resources/tools-software/uc-drivers/jesd204/axi_adxcvr>`
+
+References
+--------------------------------------------------------------------------------
+
+* HDL IP core at :git-hdl:`library/axi_dmac`
+* :dokuwiki:`High-Speed DMA Controller Peripheral on wiki <resources/fpga/docs/axi_dmac>`

@@ -3,12 +3,11 @@
 SPI Engine Interconnect Module
 ================================================================================
 
-.. symbolator:: ../../../library/spi_engine/spi_engine_interconnect/spi_engine_interconnect.v
-   :caption: axi_spi_engine
+.. hdl-component-diagram::
 
-The SPI Engine Interconnect module allows connecting multiple
-:ref:`spi_engine control-interface` masters to a single
-:ref:`spi_engine control-interface` slave.
+The :git-hdl:`SPI Engine Interconnect <library/spi_engine/spi_engine_interconnect>`
+allows connecting multiple :ref:`spi_engine control-interface` managers to a single
+:ref:`spi_engine control-interface` subordinate.
 This enables multiple command stream generators to connect to a single
 :ref:`spi_engine execution` and consequential give them access to the same SPI bus.
 The interconnect modules take care of properly arbitrating between the different
@@ -27,9 +26,9 @@ Files
 
    * - Name
      - Description
-   * - :git-hdl:`master:library/spi_engine/spi_engine_interconnect/spi_engine_interconnect.v`
+   * - :git-hdl:`library/spi_engine/spi_engine_interconnect/spi_engine_interconnect.v`
      - Verilog source for the peripheral.
-   * - :git-hdl:`master:library/spi_engine/spi_engine_interconnect/spi_engine_interconnect_ip.tcl`
+   * - :git-hdl:`library/spi_engine/spi_engine_interconnect/spi_engine_interconnect_ip.tcl`
      - TCL script to generate the Vivado IP-integrator project for the
        peripheral.
 
@@ -38,7 +37,6 @@ Configuration Parameters
 --------------------------------------------------------------------------------
 
 .. hdl-parameters::
-   :path: library/spi_engine/spi_engine_interconnect
 
    * - DATA_WIDTH
      - Data width of the parallel SDI/SDO data interfaces.
@@ -57,21 +55,21 @@ Signal and Interface Pins
      - Synchronous active-low reset.
        Resets the internal state of the module.
    * - s0_ctrl
-     - :ref:`spi_engine control-interface` slave.
-       Connects to the first control interface master.
+     - | :ref:`spi_engine control-interface` subordinate.
+       | Connects to the first control interface manager.
    * - s1_ctrl
-     - :ref:`spi_engine control-interface` slave.
-       Connects to the second control interface master.
+     - | :ref:`spi_engine control-interface` subordinate.
+       | Connects to the second control interface manager.
    * - m_ctrl
-     - :ref:`spi_engine control-interface` master.
-       Connects to the control interface slave.
+     - | :ref:`spi_engine control-interface` manager.
+       | Connects to the control interface subordinate.
 
 Theory of Operation
 --------------------------------------------------------------------------------
 
 The SPI Engine Interconnect module has multiple
-:ref:`spi_engine control-interface` slave ports and a single
-:ref:`spi_engine control-interface` master port.
+:ref:`spi_engine control-interface` subordinate ports and a single
+:ref:`spi_engine control-interface` manager port.
 It can be used to connect multiple command stream generators to a single command
 execution engine. Arbitration between the streams is done on a priority
 basis, streams with a lower index have higher priority. This means if commands

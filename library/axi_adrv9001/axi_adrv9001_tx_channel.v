@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -170,7 +170,7 @@ module axi_adrv9001_tx_channel #(
       4'h6: dac_data_iq_out <= pn7_data;
       4'h3: dac_data_iq_out <= 16'd0;
       4'h2: dac_data_iq_out <= dac_data_in;
-      4'h1: dac_data_iq_out <= dac_pat_data_1_s;
+      4'h1: dac_data_iq_out <= dac_data_sync ? dac_data_iq_out : dac_pat_data_1_s;
       default: dac_data_iq_out <= dac_dds_data_s;
     endcase
   end

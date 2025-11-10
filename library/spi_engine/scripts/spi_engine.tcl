@@ -1,9 +1,9 @@
 ###############################################################################
-## Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2020-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
-proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {num_cs 1} {num_sdi 1} {num_sdo 1} {sdi_delay 0} {echo_sclk 0}} {
+proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {num_cs 1} {num_sdi 1} {num_sdo 1} {sdi_delay 0} {echo_sclk 0} {sdo_streaming 0} {cmd_mem_addr_width 4} {data_mem_addr_width 4} {sdi_fifo_addr_width 5} {sdo_fifo_addr_width 5} {sync_fifo_addr_width 4} {cmd_fifo_addr_width 4}} {
   puts "echo_sclk: $echo_sclk"
 
   create_bd_cell -type hier $name
@@ -19,8 +19,11 @@ proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {n
   create_bd_pin -dir I -type rst resetn
   create_bd_pin -dir I trigger
   create_bd_pin -dir O irq
-  create_bd_intf_pin -mode Master -vlnv analog.com:interface:spi_master_rtl:1.0 m_spi
+  create_bd_intf_pin -mode Master -vlnv analog.com:interface:spi_engine_rtl:1.0 m_spi
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 m_axis_sample
+  if {$sdo_streaming == 1} {
+    create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 s_axis_sample
+  }
 
   set execution "${name}_execution"
   set axi_regmap "${name}_axi_regmap"
@@ -40,17 +43,27 @@ proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {n
   ad_ip_parameter $axi_regmap CONFIG.NUM_OFFLOAD 1
   ad_ip_parameter $axi_regmap CONFIG.NUM_OF_SDI $num_sdi
   ad_ip_parameter $axi_regmap CONFIG.ASYNC_SPI_CLK $async_spi_clk
+  ad_ip_parameter $axi_regmap CONFIG.OFFLOAD0_CMD_MEM_ADDRESS_WIDTH $cmd_mem_addr_width
+  ad_ip_parameter $axi_regmap CONFIG.OFFLOAD0_SDO_MEM_ADDRESS_WIDTH $data_mem_addr_width
+  ad_ip_parameter $axi_regmap CONFIG.SDI_FIFO_ADDRESS_WIDTH $sdi_fifo_addr_width
+  ad_ip_parameter $axi_regmap CONFIG.SDO_FIFO_ADDRESS_WIDTH $sdo_fifo_addr_width
+  ad_ip_parameter $axi_regmap CONFIG.SYNC_FIFO_ADDRESS_WIDTH $sync_fifo_addr_width
+  ad_ip_parameter $axi_regmap CONFIG.CMD_FIFO_ADDRESS_WIDTH $cmd_fifo_addr_width
 
   ad_ip_instance spi_engine_offload $offload
   ad_ip_parameter $offload CONFIG.DATA_WIDTH $data_width
-  ad_ip_parameter $offload CONFIG.ASYNC_SPI_CLK $async_spi_clk
+  ad_ip_parameter $offload CONFIG.ASYNC_SPI_CLK 0
   ad_ip_parameter $offload CONFIG.NUM_OF_SDI $num_sdi
+  ad_ip_parameter $offload CONFIG.CMD_MEM_ADDRESS_WIDTH $cmd_mem_addr_width
+  ad_ip_parameter $offload CONFIG.SDO_MEM_ADDRESS_WIDTH $data_mem_addr_width
+  ad_ip_parameter $offload CONFIG.SDO_STREAMING $sdo_streaming
 
   ad_ip_instance spi_engine_interconnect $interconnect
   ad_ip_parameter $interconnect CONFIG.DATA_WIDTH $data_width
   ad_ip_parameter $interconnect CONFIG.NUM_OF_SDI $num_sdi
 
   ad_connect $axi_regmap/spi_engine_offload_ctrl0 $offload/spi_engine_offload_ctrl
+  ad_connect $offload/m_interconnect_ctrl $interconnect/s_interconnect_ctrl
   ad_connect $offload/spi_engine_ctrl $interconnect/s0_ctrl
   ad_connect $axi_regmap/spi_engine_ctrl $interconnect/s1_ctrl
   ad_connect $interconnect/m_ctrl $execution/ctrl
@@ -58,6 +71,10 @@ proc spi_engine_create {{name "spi_engine"} {data_width 32} {async_spi_clk 1} {n
   ad_connect $offload/trigger trigger
 
   ad_connect $execution/spi m_spi
+
+   if {$sdo_streaming == 1} {
+    ad_connect $offload/s_axis_sdo s_axis_sample
+  }
 
   ad_connect clk $axi_regmap/s_axi_aclk
 

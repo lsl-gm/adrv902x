@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2020-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -52,7 +52,7 @@ proc p_elaboration {} {
   # Microprocessor interface
 
   ad_interface clock   up_clk    input                  1
-  ad_interface reset   up_rstn   input                  1   if_up_clk
+  ad_interface reset-n up_rstn   input                  1   if_up_clk
   ad_interface signal  up_wreq   input                  1
   ad_interface signal  up_wack   output                 1
   ad_interface signal  up_waddr  input                 14
@@ -109,20 +109,14 @@ proc p_elaboration {} {
 
   }
 
-  ad_interface signal  pulse_gen_period  output  32
-  ad_interface signal  pulse_gen_width   output  32
-  ad_interface signal  pulse_gen_load    output   1
-
-  lappend disabled_intfs if_pulse_gen_period if_pulse_gen_width if_pulse_gen_load
-
   foreach interface $disabled_intfs {
     set_interface_property $interface ENABLED false
   }
 
   # SPI Engine interfaces
 
-  ad_interface clock spi_clk     input 1
-  ad_interface reset spi_resetn  output 1 if_spi_clk
+  ad_interface clock   spi_clk     input 1
+  ad_interface reset-n spi_resetn  output 1 if_spi_clk
 
   add_interface cmd axi4stream start
   add_interface_port cmd cmd_ready tready   input  1

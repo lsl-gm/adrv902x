@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2014-2023, 2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -158,7 +158,7 @@ module system_top (
     .GMII_ENET0_0_tx_en(mii_tx_en_a),
     .GMII_ENET0_0_tx_er(),
     .GMII_ENET0_0_txd({mii_txd_extra_a,mii_txd_a}),
-    .GMII_ENET0_0_speed_mode(speed_mode_a_s),
+    .emio_enet0_speed_mode(speed_mode_a_s),
     .MDIO_ENET0_0_mdc(mdc_fmc_a),
     .MDIO_ENET0_0_mdio_io(mdio_fmc_a),
 
@@ -172,7 +172,7 @@ module system_top (
     .GMII_ENET1_0_tx_en(mii_tx_en_b),
     .GMII_ENET1_0_tx_er(),
     .GMII_ENET1_0_txd({mii_txd_extra_b,mii_txd_b}),
-    .GMII_ENET1_0_speed_mode(speed_mode_b_s),
+    .emio_enet1_speed_mode(speed_mode_b_s),
     .MDIO_ENET1_0_mdc(mdc_fmc_b),
     .MDIO_ENET1_0_mdio_io(mdio_fmc_b));
 

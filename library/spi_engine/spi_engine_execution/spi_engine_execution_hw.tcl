@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2020-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -10,7 +10,8 @@ source ../../scripts/adi_ip_intel.tcl
 ad_ip_create spi_engine_execution {SPI Engine Execution}
 set_module_property ELABORATION_CALLBACK p_elaboration
 ad_ip_files spi_engine_execution [list\
-  spi_engine_execution.v]
+  spi_engine_execution.v \
+  spi_engine_execution_shiftreg.v]
 
 # parameters
 
@@ -31,9 +32,7 @@ proc p_elaboration {} {
   # clock and reset interface
 
   ad_interface clock   clk     input 1
-  ad_interface reset   resetn  input 1 if_clk
-
-  ad_interface signal active output 1
+  ad_interface reset-n resetn  input 1 if_clk
 
   # command interface
 

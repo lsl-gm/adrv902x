@@ -1,13 +1,13 @@
 ###############################################################################
-## Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
+
+set CACHE_COHERENCY true
 
 # create board design
 # set Kria SOM240_1 connector to KV260 evaluation carrier
 set_property board_connections {som240_1_connector xilinx.com:kv260_carrier:som240_1_connector:1.3} [current_project]
-
-# default ports
 
 # default ports
 
@@ -102,7 +102,7 @@ ad_connect  gpio_t sys_ps8/emio_gpio_t
 
 # spi
 
-ad_ip_instance xlconcat spi0_csn_concat
+ad_ip_instance ilconcat spi0_csn_concat
 ad_ip_parameter spi0_csn_concat CONFIG.NUM_PORTS 3
 ad_connect  sys_ps8/emio_spi0_ss_o_n spi0_csn_concat/In0
 ad_connect  sys_ps8/emio_spi0_ss1_o_n spi0_csn_concat/In1
@@ -115,10 +115,10 @@ ad_connect  sys_ps8/emio_spi0_ss_i_n VCC
 ad_connect  sys_ps8/emio_spi0_sclk_i GND
 ad_connect  sys_ps8/emio_spi0_s_i GND
 
-ad_ip_instance xlconcat sys_concat_intc_0
+ad_ip_instance ilconcat sys_concat_intc_0
 ad_ip_parameter sys_concat_intc_0 CONFIG.NUM_PORTS 8
 
-ad_ip_instance xlconcat sys_concat_intc_1
+ad_ip_instance ilconcat sys_concat_intc_1
 ad_ip_parameter sys_concat_intc_1 CONFIG.NUM_PORTS 8
 
 ad_connect  sys_concat_intc_0/dout sys_ps8/pl_ps_irq0

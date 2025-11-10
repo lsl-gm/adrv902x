@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -94,7 +94,7 @@ ad_ip_parameter sys_ps7 CONFIG.PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_1 0.050
 ad_ip_parameter sys_ps7 CONFIG.PCW_UIPARAM_DDR_BOARD_DELAY0 0.241
 ad_ip_parameter sys_ps7 CONFIG.PCW_UIPARAM_DDR_BOARD_DELAY1 0.240
 
-ad_ip_instance xlconcat sys_concat_intc
+ad_ip_instance ilconcat sys_concat_intc
 ad_ip_parameter sys_concat_intc CONFIG.NUM_PORTS 16
 
 ad_ip_instance proc_sys_reset sys_rstgen
@@ -204,6 +204,7 @@ ad_ip_instance axi_dmac axi_ad9361_dac_dma
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_TYPE_SRC 0
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_TYPE_DEST 1
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.CYCLIC 1
+ad_ip_parameter axi_ad9361_dac_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_2D_TRANSFER 0
@@ -211,23 +212,22 @@ ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_DATA_WIDTH_DEST 64
 
 ad_add_interpolation_filter "tx_fir_interpolator" 8 2 1 {61.44} {7.68} \
                              "$ad_hdl_dir/library/util_fir_int/coefile_int.coe"
-ad_ip_instance xlslice interp_slice
+ad_ip_instance ilslice interp_slice
 ad_ip_instance util_upack2 tx_upack
 
 ad_ip_instance axi_dmac axi_ad9361_adc_dma
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_TYPE_SRC 2
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_TYPE_DEST 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.CYCLIC 0
-ad_ip_parameter axi_ad9361_adc_dma CONFIG.SYNC_TRANSFER_START 0
+ad_ip_parameter axi_ad9361_adc_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_2D_TRANSFER 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_DATA_WIDTH_SRC 64
-ad_ip_parameter axi_ad9361_adc_dma CONFIG.SYNC_TRANSFER_START {true}
 
 ad_add_decimation_filter "rx_fir_decimator" 8 2 1 {61.44} {61.44} \
                          "$ad_hdl_dir/library/util_fir_int/coefile_int.coe"
-ad_ip_instance xlslice decim_slice
+ad_ip_instance ilslice decim_slice
 ad_ip_instance util_cpack2 cpack
 
 # connections
@@ -284,6 +284,7 @@ ad_connect axi_ad9361/dac_valid_q0 tx_fir_interpolator/dac_valid_1
 ad_connect axi_ad9361/dac_data_q0 tx_fir_interpolator/data_out_1
 
 ad_connect  axi_ad9361/l_clk tx_upack/clk
+ad_connect  axi_ad9361/rst tx_upack/reset
 
 ad_connect  tx_upack/fifo_rd_data_0  tx_fir_interpolator/data_in_0
 ad_connect  tx_upack/enable_0  tx_fir_interpolator/enable_out_0
@@ -297,7 +298,7 @@ ad_connect axi_ad9361/dac_data_q1 tx_upack/fifo_rd_data_3
 
 ad_connect tx_upack/s_axis  axi_ad9361_dac_dma/m_axis
 
-ad_ip_instance util_vector_logic logic_or [list \
+ad_ip_instance ilvector_logic logic_or [list \
   C_OPERATION {or} \
   C_SIZE 1]
 
@@ -315,7 +316,7 @@ ad_connect  cpack/fifo_wr_overflow axi_ad9361/adc_dovf
 
 # External TDD
 set TDD_CHANNEL_CNT 3
-set TDD_DEFAULT_POL 0b010
+set TDD_DEFAULT_POL 0b110
 set TDD_REG_WIDTH 32
 set TDD_BURST_WIDTH 32
 set TDD_SYNC_WIDTH 0
@@ -331,12 +332,8 @@ ad_tdd_gen_create axi_tdd_0 $TDD_CHANNEL_CNT \
                             $TDD_SYNC_EXT \
                             $TDD_SYNC_EXT_CDC
 
-ad_ip_instance util_vector_logic logic_inv [list \
+ad_ip_instance ilvector_logic logic_inv [list \
   C_OPERATION {not} \
-  C_SIZE 1]
-
-ad_ip_instance util_vector_logic logic_or_1 [list \
-  C_OPERATION {or} \
   C_SIZE 1]
 
 ad_connect logic_inv/Op1  axi_ad9361/rst
@@ -344,11 +341,8 @@ ad_connect logic_inv/Res  axi_tdd_0/resetn
 ad_connect axi_ad9361/l_clk axi_tdd_0/clk
 ad_connect axi_tdd_0/sync_in tdd_ext_sync
 ad_connect axi_tdd_0/tdd_channel_0 txdata_o
-ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/fifo_wr_sync
-
-ad_connect  logic_or_1/Op1  axi_ad9361/rst
-ad_connect  logic_or_1/Op2  axi_tdd_0/tdd_channel_2
-ad_connect  logic_or_1/Res  tx_upack/reset
+ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/sync
+ad_connect axi_tdd_0/tdd_channel_2 axi_ad9361_dac_dma/sync
 
 # interconnects
 
@@ -386,4 +380,3 @@ ad_connect sys_cpu_resetn axi_ad9361_dac_dma/m_src_axi_aresetn
 ad_cpu_interrupt ps-13 mb-13 axi_ad9361_adc_dma/irq
 ad_cpu_interrupt ps-12 mb-12 axi_ad9361_dac_dma/irq
 ad_cpu_interrupt ps-11 mb-11 axi_spi/ip2intc_irpt
-

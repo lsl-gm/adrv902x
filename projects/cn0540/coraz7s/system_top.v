@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2020-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2020-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -63,6 +63,9 @@ module system_top (
   inout   [1:0]   btn,
   inout   [5:0]   led,
 
+  inout           iic_ard_scl,
+  inout           iic_ard_sda,
+
   input           cn0540_xadc_mux_p,
   input           cn0540_xadc_mux_n,
   input           cn0540_ck_an0_p,
@@ -77,9 +80,6 @@ module system_top (
   input           cn0540_ck_an4_n,
   input           cn0540_ck_an5_p,
   input           cn0540_ck_an5_n,
-
-  inout           cn0540_scl,
-  inout           cn0540_sda,
 
   inout           cn0540_shutdown,
   inout           cn0540_reset_adc,
@@ -173,8 +173,6 @@ module system_top (
     .adc_spi_cs (cn0540_spi_cs),
     .adc_spi_sclk (cn0540_spi_sclk),
     .adc_data_ready (cn0540_drdy),
-    .iic_cn0540_scl_io (cn0540_scl),
-    .iic_cn0540_sda_io (cn0540_sda),
     .spi0_clk_i (1'b0),
     .spi0_clk_o (),
     .spi0_csn_0_o (),
@@ -193,6 +191,8 @@ module system_top (
     .spi1_sdi_i (1'b0),
     .spi1_sdo_i (1'b0),
     .spi1_sdo_o(),
+    .iic_ard_scl_io (iic_ard_scl),
+    .iic_ard_sda_io (iic_ard_sda),
     .xadc_mux_v_p  (cn0540_xadc_mux_p),
     .xadc_mux_v_n  (cn0540_xadc_mux_n),
     .xadc_vaux1_v_p  (cn0540_ck_an0_p),

@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2022-2023, 2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -28,6 +28,8 @@ set INTF_CFG [get_env_param INTF_CFG RGMII]
 switch $INTF_CFG {
   MII {
     source ../common/mii_bd.tcl
+    create_bd_port -dir O -from 2 -to 0 emio_enet0_speed_mode
+    create_bd_port -dir O -from 2 -to 0 emio_enet1_speed_mode
 
     set_property -dict [list \
       CONFIG.PSU__ENET0__GRP_MDIO__ENABLE {1} \
@@ -43,6 +45,9 @@ switch $INTF_CFG {
     make_bd_intf_pins_external  [get_bd_intf_pins sys_ps8/MDIO_ENET0]
     make_bd_intf_pins_external  [get_bd_intf_pins sys_ps8/GMII_ENET1]
     make_bd_intf_pins_external  [get_bd_intf_pins sys_ps8/MDIO_ENET1]
+
+    ad_connect sys_ps8/emio_enet0_speed_mode emio_enet0_speed_mode
+    ad_connect sys_ps8/emio_enet1_speed_mode emio_enet1_speed_mode
   }
   RGMII {
     source ../common/rgmii_bd.tcl
@@ -124,18 +129,17 @@ switch $INTF_CFG {
     ad_connect proc_sys_reset_eth1/slowest_sync_clk  ref_clk_50_b
     ad_connect proc_sys_reset_eth1/ext_reset_in  sys_rstgen/peripheral_aresetn
     ad_connect proc_sys_reset_eth1/peripheral_reset  reset_b
-    ad_connect proc_sys_reset_eth1/peripheral_aresetn  mii_to_rmii_1/reset_n 
+    ad_connect proc_sys_reset_eth1/peripheral_aresetn  mii_to_rmii_1/reset_n
   }
 }
 
 source $ad_hdl_dir/projects/scripts/adi_pd.tcl
 
-set mem_init_sys_path [get_env_param ADI_PROJECT_DIR ""]mem_init_sys.txt;
-
 #system ID
 ad_ip_parameter axi_sysid_0 CONFIG.ROM_ADDR_BITS 9
-ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "[pwd]/$mem_init_sys_path"
+ad_ip_parameter rom_sys_0 CONFIG.PATH_TO_FILE "$mem_init_sys_file_path/mem_init_sys.txt"
 ad_ip_parameter rom_sys_0 CONFIG.ROM_ADDR_BITS 9
-set INTF_CFG $::env(INTF_CFG)
+
 set sys_cstring "$INTF_CFG"
+
 sysid_gen_sys_init_file $sys_cstring

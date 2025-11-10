@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2018-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2018-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -31,6 +31,11 @@ ad_ip_parameter SAMPLE_DATA_WIDTH INTEGER 16 true [list \
   DISPLAY_NAME "Sample Data Width"
 ]
 
+ad_ip_parameter PARALLEL_OR_SERIAL_N INTEGER 0 true [list \
+  DISPLAY_NAME "Parallel prefix sum calculation" \
+  ALLOWED_RANGES {"0:Serial" "1:Parallel"} \
+]
+
 # defaults
 
 proc util_cpack_elab {} {
@@ -48,9 +53,9 @@ proc util_cpack_elab {} {
   set_interface_property reset associatedClock clk
 
   ad_interface signal packed_fifo_wr_en output 1 valid
-  ad_interface signal packed_fifo_wr_sync output 1 sync
   ad_interface signal packed_fifo_wr_data output $total_data_width data
   ad_interface signal packed_fifo_wr_overflow input 1 ovf
+  ad_interface signal packed_sync output 1 sync
 
   ad_interface signal fifo_wr_overflow output 1 ovf
 
@@ -68,4 +73,3 @@ proc util_cpack_elab {} {
     set_interface_property adc_ch_$n associatedReset ""
   }
 }
-

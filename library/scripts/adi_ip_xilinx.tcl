@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -202,13 +202,14 @@ proc adi_add_multi_bus {num bus_name_prefix mode abs_type bus_type port_maps dep
 # \param[reset_signal_name] - Reset signal name
 # \param[reset_signal_mode] - Reset mode (master/slave)
 #
-proc adi_add_bus_clock {clock_signal_name bus_inf_name {reset_signal_name ""} {reset_signal_mode "slave"}} {
+proc adi_add_bus_clock {clock_signal_name bus_inf_name {reset_signal_name ""} {reset_signal_mode "slave"} {clock_signal_mode "slave"}} {
   set bus_inf_name_clean [string map {":" "_"} $bus_inf_name]
   set clock_inf_name [format "%s%s" $bus_inf_name_clean "_signal_clock"]
   set clock_inf [ipx::add_bus_interface $clock_inf_name [ipx::current_core]]
   set_property abstraction_type_vlnv "xilinx.com:signal:clock_rtl:1.0" $clock_inf
   set_property bus_type_vlnv "xilinx.com:signal:clock:1.0" $clock_inf
   set_property display_name $clock_inf_name $clock_inf
+  set_property interface_mode $clock_signal_mode $clock_inf
   set clock_map [ipx::add_port_map "CLK" $clock_inf]
   set_property physical_name $clock_signal_name $clock_map
 
@@ -252,6 +253,7 @@ proc adi_ip_add_core_dependencies {vlnvs} {
 ## Create a project which will be packed as an IP.
 #
 # \param[ip_name] - IP name
+# \param[folder_name] - Sub-folder to store the IP
 #
 proc adi_ip_create {ip_name} {
 
@@ -279,6 +281,7 @@ proc adi_ip_create {ip_name} {
 
   create_project $ip_name . -force
 
+
   ## Load custom message severity definitions
 
   if {![info exists ::env(ADI_DISABLE_MESSAGE_SUPPRESION)]} {
@@ -305,12 +308,20 @@ proc adi_ip_create {ip_name} {
 #
 proc adi_ip_files {ip_name ip_files} {
   set proj_fileset [get_filesets sources_1]
+  set design_source_files [list]
+  set constraint_files [list]
   foreach m_file $ip_files {
     if {[file extension $m_file] eq ".xdc"} {
-      add_files -norecurse -fileset constrs_1 $m_file
+      lappend constraint_files $m_file
     } else {
-      add_files -norecurse -scan_for_includes -fileset $proj_fileset $m_file
+      lappend design_source_files $m_file
     }
+  }
+  if {$design_source_files != {}} {
+    add_files -norecurse -scan_for_includes -fileset $proj_fileset $design_source_files
+  }
+  if {$constraint_files != {}} {
+    add_files -norecurse -fileset constrs_1 $constraint_files
   }
   set_property "top" "$ip_name" $proj_fileset
 }
@@ -427,11 +438,12 @@ proc adi_init_bd_tcl {} {
   foreach i $auto_set_param_list {
     if { [ipx::get_user_parameters $i -of_objects $cc -quiet] ne "" } {
       append auto_set_param "    $i \\\n"
+      set j $i
     }
   }
   if { $auto_set_param ne "" } {
     puts $bd_tcl "  bd::mark_propagate_only \$ip \" \\"
-    regsub "${i} \\\\" $auto_set_param "$i\"" auto_set_param
+    regsub "${j} \\\\" $auto_set_param "$j\"" auto_set_param
     puts $bd_tcl $auto_set_param
   }
 
@@ -439,11 +451,12 @@ proc adi_init_bd_tcl {} {
   foreach i $auto_set_param_list_overwritable {
     if { [ipx::get_user_parameters $i -of_objects $cc -quiet] ne "" } {
       append auto_set_overwritable_param "    $i \\\n"
+      set j $i
     }
   }
   if { $auto_set_overwritable_param ne "" } {
     puts $bd_tcl "  bd::mark_propagate_override \$ip \" \\"
-    regsub "${i} \\\\" $auto_set_overwritable_param "$i\"" auto_set_overwritable_param
+    regsub "${j} \\\\" $auto_set_overwritable_param "$j\"" auto_set_overwritable_param
     puts $bd_tcl $auto_set_overwritable_param
   }
   puts $bd_tcl "  adi_auto_assign_device_spec \$cellpath"
@@ -586,13 +599,14 @@ proc adi_if_define {name} {
 # \param[width] - Port width
 # \param[name] - Port logical name
 # \param[type] - Type of the port (default "none")
+# \param[default_value] - Default drive value of the port (default "none")
 #
-proc adi_if_ports {dir width name {type none}} {
+proc adi_if_ports {dir width name {type none} {default_value none}} {
 
   ipx::add_bus_abstraction_port $name [ipx::current_busabs]
   set m_intf [ipx::get_bus_abstraction_ports $name -of_objects [ipx::current_busabs]]
-  set_property master_presence required $m_intf
-  set_property slave_presence  required $m_intf
+  set_property master_presence optional $m_intf
+  set_property slave_presence  optional $m_intf
   set_property master_width $width $m_intf
   set_property slave_width  $width $m_intf
 
@@ -608,6 +622,10 @@ proc adi_if_ports {dir width name {type none}} {
 
   if {$type ne "none"} {
     set_property is_${type} true $m_intf
+  }
+
+  if {$default_value ne "none"} {
+    set_property default_value $default_value $m_intf
   }
 
   ipx::save_bus_definition [ipx::current_busdef]

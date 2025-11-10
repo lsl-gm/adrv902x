@@ -1,5 +1,5 @@
 ###############################################################################
-## Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
+## Copyright (C) 2014-2025 Analog Devices, Inc. All rights reserved.
 ### SPDX short identifier: ADIBSD
 ###############################################################################
 
@@ -70,12 +70,12 @@ ad_connect tdd_sync_i util_ad9361_tdd_sync/sync_in
 # interface clock divider to generate sampling clock
 # interface runs at 4x in 2r2t mode, and 2x in 1r1t mode
 
-ad_ip_instance xlconcat util_ad9361_divclk_sel_concat
+ad_ip_instance ilconcat util_ad9361_divclk_sel_concat
 ad_ip_parameter util_ad9361_divclk_sel_concat CONFIG.NUM_PORTS 2
 ad_connect axi_ad9361/adc_r1_mode util_ad9361_divclk_sel_concat/In0
 ad_connect axi_ad9361/dac_r1_mode util_ad9361_divclk_sel_concat/In1
 
-ad_ip_instance util_reduced_logic util_ad9361_divclk_sel
+ad_ip_instance ilreduced_logic util_ad9361_divclk_sel
 ad_ip_parameter util_ad9361_divclk_sel CONFIG.C_SIZE 2
 ad_connect util_ad9361_divclk_sel_concat/dout util_ad9361_divclk_sel/Op1
 
@@ -142,11 +142,16 @@ ad_ip_parameter axi_ad9361_adc_dma CONFIG.SYNC_TRANSFER_START 1
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_2D_TRANSFER 0
+ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_SG_TRANSFER 1
 ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_DATA_WIDTH_SRC 64
+ad_ip_parameter axi_ad9361_adc_dma CONFIG.DMA_DATA_WIDTH_SG 64
+ad_ip_parameter axi_ad9361_adc_dma CONFIG.CACHE_COHERENT $CACHE_COHERENCY
 
 ad_connect util_ad9361_divclk/clk_out axi_ad9361_adc_dma/fifo_wr_clk
 ad_connect util_ad9361_adc_pack/packed_fifo_wr axi_ad9361_adc_dma/fifo_wr
+ad_connect util_ad9361_adc_pack/packed_sync axi_ad9361_adc_dma/sync
 ad_connect $sys_cpu_resetn axi_ad9361_adc_dma/m_dest_axi_aresetn
+ad_connect $sys_cpu_resetn axi_ad9361_adc_dma/m_sg_axi_aresetn
 
 # dac-path rfifo
 
@@ -200,25 +205,40 @@ ad_ip_parameter axi_ad9361_dac_dma CONFIG.CYCLIC 1
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.AXI_SLICE_SRC 0
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.AXI_SLICE_DEST 0
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_2D_TRANSFER 0
+ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_SG_TRANSFER 1
 ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_DATA_WIDTH_DEST 64
+ad_ip_parameter axi_ad9361_dac_dma CONFIG.DMA_DATA_WIDTH_SG 64
+ad_ip_parameter axi_ad9361_dac_dma CONFIG.CACHE_COHERENT $CACHE_COHERENCY
 
 ad_connect util_ad9361_divclk/clk_out axi_ad9361_dac_dma/m_axis_aclk
 ad_connect axi_ad9361_dac_dma/m_axis util_ad9361_dac_upack/s_axis
 
 ad_connect $sys_cpu_resetn axi_ad9361_dac_dma/m_src_axi_aresetn
+ad_connect $sys_cpu_resetn axi_ad9361_dac_dma/m_sg_axi_aresetn
 
 # interconnects
 
 ad_cpu_interconnect 0x79020000 axi_ad9361
 ad_cpu_interconnect 0x7C400000 axi_ad9361_adc_dma
 ad_cpu_interconnect 0x7C420000 axi_ad9361_dac_dma
-ad_mem_hp1_interconnect $sys_cpu_clk sys_ps7/S_AXI_HP1
-ad_mem_hp1_interconnect $sys_cpu_clk axi_ad9361_adc_dma/m_dest_axi
-ad_mem_hp2_interconnect $sys_cpu_clk sys_ps7/S_AXI_HP2
-ad_mem_hp2_interconnect $sys_cpu_clk axi_ad9361_dac_dma/m_src_axi
+
+if {$CACHE_COHERENCY} {
+  ad_mem_hpc0_interconnect $sys_cpu_clk sys_ps8/S_AXI_HPC0
+  ad_mem_hpc0_interconnect $sys_cpu_clk axi_ad9361_adc_dma/m_dest_axi
+  ad_mem_hpc0_interconnect $sys_cpu_clk axi_ad9361_adc_dma/m_sg_axi
+  ad_mem_hpc1_interconnect $sys_cpu_clk sys_ps8/S_AXI_HPC1
+  ad_mem_hpc1_interconnect $sys_cpu_clk axi_ad9361_dac_dma/m_src_axi
+  ad_mem_hpc1_interconnect $sys_cpu_clk axi_ad9361_dac_dma/m_sg_axi
+} else {
+  ad_mem_hp1_interconnect $sys_cpu_clk sys_ps7/S_AXI_HP1
+  ad_mem_hp1_interconnect $sys_cpu_clk axi_ad9361_adc_dma/m_dest_axi
+  ad_mem_hp1_interconnect $sys_cpu_clk axi_ad9361_adc_dma/m_sg_axi
+  ad_mem_hp2_interconnect $sys_cpu_clk sys_ps7/S_AXI_HP2
+  ad_mem_hp2_interconnect $sys_cpu_clk axi_ad9361_dac_dma/m_src_axi
+  ad_mem_hp2_interconnect $sys_cpu_clk axi_ad9361_dac_dma/m_sg_axi
+}
 
 # interrupts
 
 ad_cpu_interrupt ps-13 mb-12 axi_ad9361_adc_dma/irq
 ad_cpu_interrupt ps-12 mb-13 axi_ad9361_dac_dma/irq
-

@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2022-2024 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -308,19 +308,30 @@ module util_hbm #(
        // Control interface
       .ctrl_enable(wr_request_enable),
       .ctrl_pause(1'b0),
+      .ctrl_hwdesc(1'b0),
+      .ctrl_flock('d0),
 
       .req_valid(wr_request_valid),
       .req_ready(wr_request_ready_loc[i]),
       .req_dest_address(ADDR_OFFSET[AXI_ADDR_WIDTH-1:AXI_BYTES_PER_BEAT_WIDTH]),
       .req_src_address('h0),
+      .req_sg_address('h0),
       .req_x_length(wr_request_length >> NUM_M_LOG2),
       .req_y_length(0),
       .req_dest_stride(0),
       .req_src_stride(0),
+      .req_flock_framenum('d0),
+      .req_flock_mode('d0),
+      .req_flock_wait_writer('d0),
+      .req_flock_distance('d0),
+      .req_flock_stride('d0),
       .req_sync_transfer_start(1'b0),
+      .req_sync(),
       .req_last(1'b1),
+      .req_cyclic('d0),
 
       .req_eot(wr_request_eot_loc[i]),
+      .req_sg_desc_id(),
       .req_measured_burst_length(wr_measured_burst_length[BYTES_PER_BURST_WIDTH*i+:BYTES_PER_BURST_WIDTH]),
       .req_response_partial(),
       .req_response_valid(wr_response_valid_loc[i]),
@@ -330,6 +341,8 @@ module util_hbm #(
       .m_dest_axi_aresetn(m_axi_aresetn),
       .m_src_axi_aclk(1'b0),
       .m_src_axi_aresetn(1'b0),
+      .m_sg_axi_aclk(1'b0),
+      .m_sg_axi_aresetn(1'b0),
 
       .m_axi_awaddr(m_axi_awaddr[AXI_ADDR_WIDTH*i+:AXI_ADDR_WIDTH]),
       .m_axi_awlen(m_axi_awlen[AXI_ALEN*i+:AXI_ALEN]),
@@ -350,7 +363,7 @@ module util_hbm #(
       .m_axi_bresp(m_axi_bresp[2*i+:2]),
       .m_axi_bready(m_axi_bready[i]),
 
-      .m_axi_arready(),
+      .m_axi_arready(1'b0),
       .m_axi_arvalid(),
       .m_axi_araddr(),
       .m_axi_arlen(),
@@ -359,11 +372,26 @@ module util_hbm #(
       .m_axi_arprot(),
       .m_axi_arcache(),
 
-      .m_axi_rdata(),
+      .m_axi_rdata('h0),
+      .m_axi_rlast(1'b0),
       .m_axi_rready(),
-      .m_axi_rvalid(),
-      .m_axi_rlast(),
-      .m_axi_rresp(),
+      .m_axi_rvalid(1'b0),
+      .m_axi_rresp(2'b00),
+
+      .m_sg_axi_arready(1'b0),
+      .m_sg_axi_arvalid(),
+      .m_sg_axi_araddr(),
+      .m_sg_axi_arlen(),
+      .m_sg_axi_arsize(),
+      .m_sg_axi_arburst(),
+      .m_sg_axi_arprot(),
+      .m_sg_axi_arcache(),
+
+      .m_sg_axi_rdata('h0),
+      .m_sg_axi_rlast(1'b0),
+      .m_sg_axi_rready(),
+      .m_sg_axi_rvalid(1'b0),
+      .m_sg_axi_rresp(2'b00),
 
       .s_axis_aclk(s_axis_aclk),
       .s_axis_ready(s_axis_ready_loc[i]),
@@ -377,6 +405,7 @@ module util_hbm #(
       .m_axis_ready(1'b1),
       .m_axis_valid(),
       .m_axis_data(),
+      .m_axis_user(),
       .m_axis_last(),
       .m_axis_xfer_req(),
 
@@ -384,7 +413,6 @@ module util_hbm #(
       .fifo_wr_en(1'b0),
       .fifo_wr_din('b0),
       .fifo_wr_overflow(),
-      .fifo_wr_sync(),
       .fifo_wr_xfer_req(),
 
       .fifo_rd_clk(1'b0),
@@ -404,6 +432,16 @@ module util_hbm #(
       .dbg_src_data_id(),
       .dbg_src_response_id(),
       .dbg_status(),
+      .m_frame_in('d0),
+      .m_frame_in_valid('d0),
+      .m_frame_out(),
+      .m_frame_out_valid(),
+      .s_frame_in('d0),
+      .s_frame_in_valid('d0),
+      .s_frame_out(),
+      .s_frame_out_valid(),
+      .src_ext_sync('d0),
+      .dest_ext_sync('d0),
 
       .dest_diag_level_bursts());
 
@@ -458,19 +496,30 @@ module util_hbm #(
        // Control interface
       .ctrl_enable(rd_request_enable),
       .ctrl_pause(1'b0),
+      .ctrl_hwdesc(1'b0),
+      .ctrl_flock('d0),
 
       .req_valid(rd_request_valid),
       .req_ready(rd_request_ready_loc[i]),
       .req_dest_address(0),
       .req_src_address(ADDR_OFFSET[AXI_ADDR_WIDTH-1:AXI_BYTES_PER_BEAT_WIDTH]),
+      .req_sg_address('h0),
       .req_x_length(rd_request_length >> NUM_M_LOG2),
       .req_y_length(0),
       .req_dest_stride(0),
       .req_src_stride(0),
+      .req_flock_framenum('d0),
+      .req_flock_mode('d0),
+      .req_flock_wait_writer('d0),
+      .req_flock_distance('d0),
+      .req_flock_stride('d0),
       .req_sync_transfer_start(1'b0),
+      .req_sync(),
       .req_last(1'b1),
+      .req_cyclic('d0),
 
       .req_eot(rd_request_eot_loc[i]),
+      .req_sg_desc_id(),
       .req_measured_burst_length(),
       .req_response_partial(),
       .req_response_valid(rd_response_valid_loc[i]),
@@ -480,6 +529,8 @@ module util_hbm #(
       .m_dest_axi_aresetn(1'b0),
       .m_src_axi_aclk(m_axi_aclk),
       .m_src_axi_aresetn(m_axi_aresetn),
+      .m_sg_axi_aclk(1'b0),
+      .m_sg_axi_aresetn(1'b0),
 
       .m_axi_awaddr(),
       .m_axi_awlen(),
@@ -510,10 +561,25 @@ module util_hbm #(
       .m_axi_arcache(),
 
       .m_axi_rdata(m_axi_rdata[AXI_DATA_WIDTH*i+:AXI_DATA_WIDTH]),
+      .m_axi_rlast(m_axi_rlast[i]),
       .m_axi_rready(m_axi_rready[i]),
       .m_axi_rvalid(m_axi_rvalid[i]),
-      .m_axi_rlast(m_axi_rlast[i]),
       .m_axi_rresp(m_axi_rresp[2*i+:2]),
+
+      .m_sg_axi_arready (1'b0),
+      .m_sg_axi_arvalid (),
+      .m_sg_axi_araddr (),
+      .m_sg_axi_arlen (),
+      .m_sg_axi_arsize (),
+      .m_sg_axi_arburst (),
+      .m_sg_axi_arprot (),
+      .m_sg_axi_arcache (),
+
+      .m_sg_axi_rdata ('h0),
+      .m_sg_axi_rlast (1'b0),
+      .m_sg_axi_rready (),
+      .m_sg_axi_rvalid (1'b0),
+      .m_sg_axi_rresp (2'b00),
 
       .s_axis_aclk(1'b0),
       .s_axis_ready(),
@@ -527,6 +593,7 @@ module util_hbm #(
       .m_axis_ready((m_axis_ready & m_axis_valid) | rd_needs_reset),
       .m_axis_valid(m_axis_valid_loc[i]),
       .m_axis_data(m_axis_data[DST_DATA_WIDTH_PER_M*i+:DST_DATA_WIDTH_PER_M]),
+      .m_axis_user(),
       .m_axis_last(m_axis_last_loc[i]),
       .m_axis_xfer_req(m_axis_xfer_req),
 
@@ -534,7 +601,6 @@ module util_hbm #(
       .fifo_wr_en(1'b0),
       .fifo_wr_din('b0),
       .fifo_wr_overflow(),
-      .fifo_wr_sync(),
       .fifo_wr_xfer_req(),
 
       .fifo_rd_clk(1'b0),
@@ -554,6 +620,16 @@ module util_hbm #(
       .dbg_src_data_id(),
       .dbg_src_response_id(),
       .dbg_status(rd_dbg_status),
+      .m_frame_in('d0),
+      .m_frame_in_valid('d0),
+      .m_frame_out(),
+      .m_frame_out_valid(),
+      .s_frame_in('d0),
+      .s_frame_in_valid('d0),
+      .s_frame_out(),
+      .s_frame_out_valid(),
+      .src_ext_sync('d0),
+      .dest_ext_sync('d0),
 
       .dest_diag_level_bursts());
 

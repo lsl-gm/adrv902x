@@ -1,6 +1,6 @@
 // ***************************************************************************
 // ***************************************************************************
-// Copyright (C) 2022-2023 Analog Devices, Inc. All rights reserved.
+// Copyright (C) 2022-2025 Analog Devices, Inc. All rights reserved.
 //
 // In this HDL repository, there are many different and unique modules, consisting
 // of various HDL (Verilog or VHDL) components. The individual modules are
@@ -26,7 +26,7 @@
 //
 //   2. An ADI specific BSD license, which can be found in the top level directory
 //      of this repository (LICENSE_ADIBSD), and also on-line at:
-//      https://github.com/analogdevicesinc/hdl/blob/master/LICENSE_ADIBSD
+//      https://github.com/analogdevicesinc/hdl/blob/main/LICENSE_ADIBSD
 //      This will allow to generate bit files and not release the source code,
 //      as long as it attaches to an ADI device.
 //
@@ -37,8 +37,10 @@
 
 module axi_clock_monitor #(
 
+  parameter   FPGA_TECHNOLOGY = 0,
   parameter   ID = 0,
-  parameter   NUM_OF_CLOCKS = 1
+  parameter   NUM_OF_CLOCKS = 1,
+  parameter   DIV_RATE = 1
 ) (
 
   // clocks
@@ -90,6 +92,17 @@ module axi_clock_monitor #(
   // local parameters
 
   localparam  PCORE_VERSION = 1;
+  localparam [7:0] DIV_VALUE = (DIV_RATE == 4'd1) ? "1" :
+                               (DIV_RATE == 4'd2) ? "2" :
+                               (DIV_RATE == 4'd3) ? "3" :
+                               (DIV_RATE == 4'd4) ? "4" :
+                               (DIV_RATE == 4'd5) ? "5" :
+                               (DIV_RATE == 4'd6) ? "6" :
+                               (DIV_RATE == 4'd7) ? "7" :
+                               (DIV_RATE == 4'd8) ? "8" : "0";
+  localparam  SEVEN_SERIES    = 1;
+  localparam  ULTRASCALE      = 2;
+  localparam  ULTRASCALE_PLUS = 3;
 
   // internal registers
 
@@ -108,15 +121,13 @@ module axi_clock_monitor #(
   wire         up_rreq_s;
   wire         up_waddr_s;
   wire         up_raddr_s;
-
-  wire         clock         [0:15];
-  wire [20:0]  clk_mon_count [0:15];
-
-  wire         up_wreq_i_s;
+  wire         clock          [0:15];
+  wire [20:0]  clk_mon_count  [0:15];
+  wire         clock_div      [0:15];
+  wire [7:0]   div_rate_s;
   wire [13:0]  up_waddr_i_s;
   wire [31:0]  up_wdata_i_s;
   wire         up_wack_o_s;
-  wire         up_rreq_i_s;
   wire [13:0]  up_raddr_i_s;
   wire [31:0]  up_rdata_o_s;
   wire         up_rack_o_s;
@@ -147,11 +158,6 @@ module axi_clock_monitor #(
   assign up_clk = s_axi_aclk;
   assign up_rstn = s_axi_aresetn;
   assign reset = up_reset_core;
-
-  // decode block select
-
-  assign up_wreq_s = (up_waddr_i_s[13:8] == ID) ? up_wreq_i_s : 1'b0;
-  assign up_rreq_s = (up_raddr_i_s[13:8] == ID) ? up_rreq_i_s : 1'b0;
 
   // processor write interface
 
@@ -184,32 +190,33 @@ module axi_clock_monitor #(
     end else begin
       up_rack_int <= up_rreq_s;
       if (up_rreq_s == 1'b1) begin
-        case (up_raddr_i_s)
+        case (up_raddr_i_s[4:0])
           /* Standard registers */
-          14'h000: up_rdata_int <= PCORE_VERSION;
-          14'h001: up_rdata_int <= ID;
+          5'h00: up_rdata_int <= PCORE_VERSION;
+          5'h01: up_rdata_int <= ID;
 
           /* Core configuration */
-          14'h003: up_rdata_int <= NUM_OF_CLOCKS;
-          14'h004: up_rdata_int <= {31'h00, up_reset_core};
+          5'h02: up_rdata_int <= {14'h00, div_rate_s};
+          5'h03: up_rdata_int <= NUM_OF_CLOCKS;
+          5'h04: up_rdata_int <= {31'h00, up_reset_core};
 
           /* Clock ratios registers*/
-          14'h010: up_rdata_int <= {11'h00, clk_mon_count[ 0]};
-          14'h011: up_rdata_int <= {11'h00, clk_mon_count[ 1]};
-          14'h012: up_rdata_int <= {11'h00, clk_mon_count[ 2]};
-          14'h013: up_rdata_int <= {11'h00, clk_mon_count[ 3]};
-          14'h014: up_rdata_int <= {11'h00, clk_mon_count[ 4]};
-          14'h015: up_rdata_int <= {11'h00, clk_mon_count[ 5]};
-          14'h016: up_rdata_int <= {11'h00, clk_mon_count[ 6]};
-          14'h017: up_rdata_int <= {11'h00, clk_mon_count[ 7]};
-          14'h018: up_rdata_int <= {11'h00, clk_mon_count[ 8]};
-          14'h019: up_rdata_int <= {11'h00, clk_mon_count[ 9]};
-          14'h01a: up_rdata_int <= {11'h00, clk_mon_count[10]};
-          14'h01b: up_rdata_int <= {11'h00, clk_mon_count[11]};
-          14'h01c: up_rdata_int <= {11'h00, clk_mon_count[12]};
-          14'h01d: up_rdata_int <= {11'h00, clk_mon_count[13]};
-          14'h01e: up_rdata_int <= {11'h00, clk_mon_count[14]};
-          14'h01f: up_rdata_int <= {11'h00, clk_mon_count[15]};
+          5'h10: up_rdata_int <= {11'h00, clk_mon_count[ 0]};
+          5'h11: up_rdata_int <= {11'h00, clk_mon_count[ 1]};
+          5'h12: up_rdata_int <= {11'h00, clk_mon_count[ 2]};
+          5'h13: up_rdata_int <= {11'h00, clk_mon_count[ 3]};
+          5'h14: up_rdata_int <= {11'h00, clk_mon_count[ 4]};
+          5'h15: up_rdata_int <= {11'h00, clk_mon_count[ 5]};
+          5'h16: up_rdata_int <= {11'h00, clk_mon_count[ 6]};
+          5'h17: up_rdata_int <= {11'h00, clk_mon_count[ 7]};
+          5'h18: up_rdata_int <= {11'h00, clk_mon_count[ 8]};
+          5'h19: up_rdata_int <= {11'h00, clk_mon_count[ 9]};
+          5'h1a: up_rdata_int <= {11'h00, clk_mon_count[10]};
+          5'h1b: up_rdata_int <= {11'h00, clk_mon_count[11]};
+          5'h1c: up_rdata_int <= {11'h00, clk_mon_count[12]};
+          5'h1d: up_rdata_int <= {11'h00, clk_mon_count[13]};
+          5'h1e: up_rdata_int <= {11'h00, clk_mon_count[14]};
+          5'h1f: up_rdata_int <= {11'h00, clk_mon_count[15]};
 
           default: up_rdata_int <= 'h00;
         endcase
@@ -219,8 +226,33 @@ module axi_clock_monitor #(
 
   // clock monitors
 
+  assign div_rate_s = (FPGA_TECHNOLOGY == SEVEN_SERIES || FPGA_TECHNOLOGY ==  ULTRASCALE || FPGA_TECHNOLOGY ==  ULTRASCALE_PLUS) ?   DIV_RATE : 8'b1;
+
   generate
     for (n = 0; n < NUM_OF_CLOCKS; n = n + 1) begin: clk_mon
+      if(FPGA_TECHNOLOGY == SEVEN_SERIES) begin
+        BUFR #(
+          .BUFR_DIVIDE(DIV_VALUE),
+          .SIM_DEVICE("7SERIES")
+        ) BUFR_inst (
+          .CLR(1'b0),
+          .CE(1'b1),
+          .I(clock[n]),
+          .O(clock_div[n]));
+      end else if(FPGA_TECHNOLOGY == ULTRASCALE || FPGA_TECHNOLOGY == ULTRASCALE_PLUS) begin
+        BUFGCE_DIV #(
+          .BUFGCE_DIVIDE(DIV_RATE),
+          .IS_CE_INVERTED(1'b0),
+          .IS_CLR_INVERTED(1'b0),
+          .IS_I_INVERTED(1'b0)
+        ) i_div_clk_buf (
+          .O(clock_div[n]),
+          .CE(1'b1),
+          .CLR(1'b0),
+          .I(clock[n]));
+      end else begin
+        assign clock_div[n] = clock[n];
+      end
       up_clock_mon #(
         .TOTAL_WIDTH(21)
       ) i_clock_mon (
@@ -228,11 +260,12 @@ module axi_clock_monitor #(
         .up_clk(up_clk),
         .up_d_count(clk_mon_count[n]),
         .d_rst(1'b0),
-        .d_clk(clock[n]));
+        .d_clk(clock_div[n]));
     end
     for (n = NUM_OF_CLOCKS; n < 16; n = n + 1) begin: clk_mon_z
       assign clk_mon_count[n] = 21'd0;
     end
+
   endgenerate
 
   // axi interface
@@ -257,11 +290,11 @@ module axi_clock_monitor #(
     .up_axi_rresp (s_axi_rresp),
     .up_axi_rdata (s_axi_rdata),
     .up_axi_rready (s_axi_rready),
-    .up_wreq (up_wreq_i_s),
+    .up_wreq (up_wreq_s),
     .up_waddr (up_waddr_i_s),
     .up_wdata (up_wdata_i_s),
     .up_wack (up_wack_o_s),
-    .up_rreq (up_rreq_i_s),
+    .up_rreq (up_rreq_s),
     .up_raddr (up_raddr_i_s),
     .up_rdata (up_rdata_o_s),
     .up_rack (up_rack_o_s));
